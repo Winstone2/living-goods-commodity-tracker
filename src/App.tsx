@@ -9,6 +9,9 @@ import { LoginForm } from "@/components/LoginForm";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/components/Dashboard";
 import { Inventory } from "@/pages/Inventory";
+import { Reports } from "@/pages/Reports";
+import { UserManagement } from "@/pages/UserManagement";
+import { Settings } from "@/pages/Settings";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +35,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <Layout>{children}</Layout>;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  
+  if (user?.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
+  }
+  
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
   
@@ -50,18 +63,21 @@ const AppRoutes = () => {
       } />
       <Route path="/reports" element={
         <ProtectedRoute>
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Reports & Analytics</h2>
-            <p className="text-gray-600">Coming soon...</p>
-          </div>
+          <Reports />
         </ProtectedRoute>
       } />
-      <Route path="/admin/*" element={
+      <Route path="/admin/users" element={
         <ProtectedRoute>
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Admin Panel</h2>
-            <p className="text-gray-600">Coming soon...</p>
-          </div>
+          <AdminRoute>
+            <UserManagement />
+          </AdminRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/settings" element={
+        <ProtectedRoute>
+          <AdminRoute>
+            <Settings />
+          </AdminRoute>
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

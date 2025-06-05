@@ -1,11 +1,12 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, MapPin, Home, Users, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Building2, MapPin, Home, Users, TrendingUp, AlertTriangle, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Mock data - in real app this would come from API
   const stats = {
@@ -154,16 +155,25 @@ export const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+            <button 
+              onClick={() => navigate('/inventory')}
+              className="p-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
               <TrendingUp className="w-6 h-6 mx-auto mb-2" />
               <span className="block font-medium">Add New Record</span>
             </button>
-            <button className="p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <button 
+              onClick={() => navigate('/inventory')}
+              className="p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
               <Users className="w-6 h-6 mx-auto mb-2" />
               <span className="block font-medium">View Community Units</span>
             </button>
-            <button className="p-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-              <Building2 className="w-6 h-6 mx-auto mb-2" />
+            <button 
+              onClick={() => navigate('/reports')}
+              className="p-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              <FileText className="w-6 h-6 mx-auto mb-2" />
               <span className="block font-medium">Generate Report</span>
             </button>
           </div>
