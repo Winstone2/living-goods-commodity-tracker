@@ -30,7 +30,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-comic">
+    <div className="min-h-screen bg-gray-50 font-comic flex flex-col">
       <header className="bg-white shadow-sm border-b">
         <div className="flex justify-between items-center px-6 py-4">
           <div className="flex items-center space-x-4">
@@ -65,8 +65,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <div className="flex">
-        <nav className="w-64 bg-white shadow-sm min-h-screen border-r">
+      <div className="flex flex-1">
+        <nav className="w-64 bg-white shadow-sm border-r">
           <div className="p-4">
             <div className="space-y-2">
               {navigationItems.map((item) => {
@@ -96,6 +96,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t py-3 text-center text-sm text-gray-600">
+        <p>&copy; 2024 Living Goods. All rights reserved.</p>
+      </footer>
     </div>
   );
 };

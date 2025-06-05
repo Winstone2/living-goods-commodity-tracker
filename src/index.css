@@ -40,14 +40,20 @@
 
   * {
     @apply border-border;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
   }
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+  }
+
+  /* Ensure comic sans font is applied everywhere including inputs, buttons, etc */
+  input, button, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6, label {
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
   }
 }
 
 .comic-sans {
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
 }

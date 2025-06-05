@@ -38,8 +38,8 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 font-comic">
-      <div className="w-full max-w-md p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 font-comic">
+      <div className="w-full max-w-md p-6 flex-1 flex flex-col justify-center">
         <div className="text-center mb-8">
           <img 
             src="/lovable-uploads/7334be09-684d-43d3-9eb3-3180f308eae4.png" 
@@ -112,15 +112,14 @@ export const LoginForm = () => {
                 )}
               </Button>
             </form>
-
-            <div className="mt-6 text-center text-sm text-gray-600">
-              <p className="font-semibold">Demo Credentials:</p>
-              <p>Admin: admin / admin123</p>
-              <p>User: user1 / user123</p>
-            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Footer */}
+      <footer className="w-full py-4 text-center text-sm text-gray-600 bg-white/50">
+        <p>&copy; 2024 Living Goods. All rights reserved.</p>
+      </footer>
     </div>
   );
 };
