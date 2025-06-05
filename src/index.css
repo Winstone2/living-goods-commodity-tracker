@@ -46,14 +46,55 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+    /* Prevent horizontal scrolling on mobile */
+    overflow-x: hidden;
   }
 
   /* Ensure comic sans font is applied everywhere including inputs, buttons, etc */
   input, button, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6, label {
     font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
   }
+
+  /* Mobile responsive improvements */
+  @media (max-width: 768px) {
+    /* Ensure forms and cards are properly sized on mobile */
+    .card {
+      margin: 0.5rem;
+    }
+    
+    /* Prevent text from being too small on mobile */
+    input, button, select, textarea {
+      font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+    
+    /* Ensure tables are horizontally scrollable on mobile */
+    table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
 }
 
 .comic-sans {
   font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+}
+
+/* Custom scrollbar for better mobile experience */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }

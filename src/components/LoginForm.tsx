@@ -38,32 +38,32 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 font-comic">
-      <div className="w-full max-w-md p-6 flex-1 flex flex-col justify-center">
-        <div className="text-center mb-8">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 font-comic px-4">
+      <div className="w-full max-w-md p-4 sm:p-6 flex-1 flex flex-col justify-center">
+        <div className="text-center mb-6 sm:mb-8">
           <img 
             src="/lovable-uploads/7334be09-684d-43d3-9eb3-3180f308eae4.png" 
             alt="Living Goods Logo" 
-            className="w-32 h-auto mx-auto mb-4"
+            className="w-24 sm:w-32 h-auto mx-auto mb-4"
           />
-          <h1 className="text-3xl font-bold text-primary mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">
             Living Goods
           </h1>
-          <p className="text-lg text-orange-600 font-semibold">
+          <p className="text-base sm:text-lg text-orange-600 font-semibold">
             Commodity Tracker App
           </p>
         </div>
 
         <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center text-gray-800">
+          <CardHeader className="space-y-1 px-4 sm:px-6">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-gray-800">
               Sign In
             </CardTitle>
-            <p className="text-center text-gray-600">
+            <p className="text-center text-gray-600 text-sm sm:text-base">
               Access your community health inventory
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-gray-700">Username</Label>
@@ -75,7 +75,7 @@ export const LoginForm = () => {
                     placeholder="Enter your username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-primary"
+                    className="pl-10 h-12 border-gray-200 focus:border-primary text-base"
                     required
                   />
                 </div>
@@ -91,7 +91,7 @@ export const LoginForm = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-primary"
+                    className="pl-10 h-12 border-gray-200 focus:border-primary text-base"
                     required
                   />
                 </div>
@@ -99,7 +99,7 @@ export const LoginForm = () => {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base"
                 disabled={isLoading}
               >
                 {isLoading ? (
