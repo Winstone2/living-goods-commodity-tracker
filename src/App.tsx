@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/components/Dashboard";
+import { Inventory } from "@/pages/Inventory";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -44,10 +45,7 @@ const AppRoutes = () => {
       } />
       <Route path="/inventory" element={
         <ProtectedRoute>
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Inventory Management</h2>
-            <p className="text-gray-600">Coming soon...</p>
-          </div>
+          <Inventory />
         </ProtectedRoute>
       } />
       <Route path="/reports" element={
