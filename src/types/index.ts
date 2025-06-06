@@ -1,4 +1,7 @@
+// Re-export database types for backward compatibility
+export * from './database';
 
+// Legacy types - keeping for backward compatibility with existing components
 export interface User {
   id: string;
   username: string;
