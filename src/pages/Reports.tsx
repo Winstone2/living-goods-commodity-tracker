@@ -89,23 +89,23 @@ export const Reports = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center space-x-2">
           <FileText className="w-8 h-8 text-primary" />
           <span>Reports & Analytics</span>
         </h1>
-        <div className="flex space-x-2">
-          <Button onClick={() => exportData('csv')} variant="outline">
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            Export CSV
+        <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+          <Button onClick={() => exportData('csv')} variant="outline" className="text-xs sm:text-sm" size="sm">
+            <FileSpreadsheet className="w-4 h-4 mr-1 sm:mr-2" />
+            CSV
           </Button>
-          <Button onClick={() => exportData('excel')} variant="outline">
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            Export Excel
+          <Button onClick={() => exportData('excel')} variant="outline" className="text-xs sm:text-sm" size="sm">
+            <FileSpreadsheet className="w-4 h-4 mr-1 sm:mr-2" />
+            Excel
           </Button>
-          <Button onClick={() => exportData('pdf')} variant="outline">
-            <FileImage className="w-4 h-4 mr-2" />
-            Export PDF
+          <Button onClick={() => exportData('pdf')} variant="outline" className="text-xs sm:text-sm" size="sm">
+            <FileImage className="w-4 h-4 mr-1 sm:mr-2" />
+            PDF
           </Button>
         </div>
       </div>
@@ -170,7 +170,7 @@ export const Reports = () => {
               </Select>
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={applyFilters} className="bg-primary hover:bg-primary/90">
               <Filter className="w-4 h-4 mr-2" />
               Apply Filters
@@ -183,29 +183,29 @@ export const Reports = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-primary">12</div>
-            <div className="text-sm text-gray-600">Total Sub-Counties</div>
+          <CardContent className="p-3 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-primary">12</div>
+            <div className="text-xs sm:text-sm text-gray-600">Total Sub-Counties</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-green-600">156</div>
-            <div className="text-sm text-gray-600">Total Facilities</div>
+          <CardContent className="p-3 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">156</div>
+            <div className="text-xs sm:text-sm text-gray-600">Total Facilities</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-purple-600">89</div>
-            <div className="text-sm text-gray-600">Community Units</div>
+          <CardContent className="p-3 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-purple-600">89</div>
+            <div className="text-xs sm:text-sm text-gray-600">Community Units</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-2xl font-bold text-orange-600">770</div>
-            <div className="text-sm text-gray-600">Total Consumption</div>
+          <CardContent className="p-3 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-orange-600">770</div>
+            <div className="text-xs sm:text-sm text-gray-600">Total Consumption</div>
           </CardContent>
         </Card>
       </div>
@@ -215,47 +215,49 @@ export const Reports = () => {
         <CardHeader>
           <CardTitle>Detailed Report</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Community Unit</TableHead>
-                <TableHead>County</TableHead>
-                <TableHead>Sub-County</TableHead>
-                <TableHead>Ward</TableHead>
-                <TableHead>Facility</TableHead>
-                <TableHead>Total Consumption</TableHead>
-                <TableHead>Out of Stock</TableHead>
-                <TableHead>Last Update</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reportData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.communityUnit}</TableCell>
-                  <TableCell>{item.county}</TableCell>
-                  <TableCell>{item.subCounty}</TableCell>
-                  <TableCell>{item.ward}</TableCell>
-                  <TableCell>{item.facility}</TableCell>
-                  <TableCell>{item.totalConsumption}</TableCell>
-                  <TableCell>
-                    {item.commoditiesOutOfStock.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {item.commoditiesOutOfStock.map((commodity, index) => (
-                          <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                            {commodity}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-green-600">In Stock</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{item.lastUpdate}</TableCell>
+        <CardContent className="px-0 sm:px-6">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Community Unit</TableHead>
+                  <TableHead>County</TableHead>
+                  <TableHead>Sub-County</TableHead>
+                  <TableHead className="hidden sm:table-cell">Ward</TableHead>
+                  <TableHead className="hidden sm:table-cell">Facility</TableHead>
+                  <TableHead>Consumption</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead className="hidden sm:table-cell">Last Update</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {reportData.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.communityUnit}</TableCell>
+                    <TableCell>{item.county}</TableCell>
+                    <TableCell>{item.subCounty}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{item.ward}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{item.facility}</TableCell>
+                    <TableCell>{item.totalConsumption}</TableCell>
+                    <TableCell>
+                      {item.commoditiesOutOfStock.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.commoditiesOutOfStock.map((commodity, index) => (
+                            <span key={index} className="px-1 sm:px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full whitespace-nowrap">
+                              {commodity}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-green-600">In Stock</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{item.lastUpdate}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

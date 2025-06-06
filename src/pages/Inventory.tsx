@@ -60,8 +60,8 @@ export const Inventory = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+      <div className="flex flex-wrap justify-between items-center gap-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Management</h1>
         {currentStep > 1 && (
           <button
             onClick={resetForm}
@@ -72,8 +72,8 @@ export const Inventory = () => {
         )}
       </div>
 
-      {/* Progress indicator */}
-      <div className="flex items-center space-x-4 mb-6">
+      {/* Progress indicator - Mobile-friendly version */}
+      <div className="hidden sm:flex items-center space-x-4 mb-6">
         <div className={`flex items-center space-x-2 ${currentStep >= 1 ? 'text-primary' : 'text-gray-400'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
             currentStep >= 1 ? 'bg-primary text-white' : 'bg-gray-200'
@@ -100,6 +100,38 @@ export const Inventory = () => {
           </div>
           <span className="font-medium">Commodity Details</span>
         </div>
+      </div>
+
+      {/* Mobile Progress indicator */}
+      <div className="sm:hidden flex flex-col mb-6 space-y-4">
+        <div className={`flex items-center space-x-2 ${currentStep >= 1 ? 'text-primary' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            currentStep >= 1 ? 'bg-primary text-white' : 'bg-gray-200'
+          }`}>
+            1
+          </div>
+          <span className="font-medium">Community Unit Info</span>
+        </div>
+        {currentStep >= 2 && (
+          <div className={`flex items-center space-x-2 ${currentStep >= 2 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              currentStep >= 2 ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}>
+              2
+            </div>
+            <span className="font-medium">Select Commodities</span>
+          </div>
+        )}
+        {currentStep >= 3 && (
+          <div className={`flex items-center space-x-2 ${currentStep >= 3 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              currentStep >= 3 ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}>
+              3
+            </div>
+            <span className="font-medium">Commodity Details</span>
+          </div>
+        )}
       </div>
 
       {/* Step 1: Community Unit Form */}
