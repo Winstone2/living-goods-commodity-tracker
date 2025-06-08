@@ -7,6 +7,7 @@ export interface User {
   username: string;
   role: 'admin' | 'user';
   createdAt: Date;
+  token?: string; // Optional for legacy support
 }
 
 export interface CommunityUnit {

@@ -1,11 +1,11 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_CONFIG } from '@/api/config/api.config'; // This import now matches the file path
 import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -32,31 +32,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Mock authentication - in real app this would call an API
-    const mockUsers = [
-      { id: '1', username: 'admin', password: 'admin123', role: 'admin' as const },
-      { id: '2', username: 'user1', password: 'user123', role: 'user' as const },
-    ];
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.AUTH.LOGIN}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': '*/*'
+        },
+        body: JSON.stringify({ username, password })
+      });
 
-    const foundUser = mockUsers.find(u => u.username === username && u.password === password);
-    
-    if (foundUser) {
-      const authenticatedUser: User = {
-        id: foundUser.id,
-        username: foundUser.username,
-        role: foundUser.role,
-        createdAt: new Date(),
-      };
-      setUser(authenticatedUser);
-      localStorage.setItem('user', JSON.stringify(authenticatedUser));
-      return true;
+      const data = await response.json();
+
+      if (data.success) {
+        const userData: User = {
+          id: data.data.userId.toString(),
+          username: data.data.username,
+          role: 'user',
+          token: data.data.token,
+          createdAt: new Date()
+        };
+
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    try {
+      if (user?.token) {
+        await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.AUTH.LOGOUT}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    } finally {
+      setUser(null);
+      localStorage.removeItem('user');
+    }
   };
 
   return (
