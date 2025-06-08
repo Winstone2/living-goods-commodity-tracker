@@ -1,35 +1,57 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Commodity } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { Commodity } from '@/types/commodity';
+import { API_CONFIG } from '@/api/config/api.config';
 
 interface CommoditySelectorProps {
   onSelectionChange: (selectedCommodities: string[]) => void;
   selectedCommodities: string[];
 }
 
-const AVAILABLE_COMMODITIES: Commodity[] = [
-  { id: '1', name: 'MRDT', category: 'Diagnostic' },
-  { id: '2', name: 'AL 6s', category: 'Treatment' },
-  { id: '3', name: 'AL 12s', category: 'Treatment' },
-  { id: '4', name: 'AL 18s', category: 'Treatment' },
-  { id: '5', name: 'AL 24s', category: 'Treatment' },
-  { id: '6', name: 'ORS/ZINC Combo', category: 'Treatment' },
-  { id: '7', name: 'ORS Sachets', category: 'Treatment' },
-  { id: '8', name: 'Zinc Tablets', category: 'Treatment' },
-  { id: '9', name: 'PCM SYRUP', category: 'Treatment' },
-  { id: '10', name: 'PCM Tablets', category: 'Treatment' },
-  { id: '11', name: 'Deworming Tablets', category: 'Prevention' },
-  { id: '12', name: 'Vitamin A Supplements', category: 'Prevention' },
-  { id: '13', name: 'Deworming Syrup', category: 'Prevention' },
-];
-
 export const CommoditySelector: React.FC<CommoditySelectorProps> = ({ 
   onSelectionChange, 
   selectedCommodities 
 }) => {
+  const { toast } = useToast();
+  const [commodities, setCommodities] = useState<Commodity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCommodities = async () => {
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.COMMODITIES.LIST}`, {
+          headers: {
+            'Accept': '*/*'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch commodities');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          setCommodities(result.data);
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load commodities"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCommodities();
+  }, []);
+
   const handleCommodityToggle = (commodityId: string) => {
     const newSelection = selectedCommodities.includes(commodityId)
       ? selectedCommodities.filter(id => id !== commodityId)
@@ -38,13 +60,23 @@ export const CommoditySelector: React.FC<CommoditySelectorProps> = ({
     onSelectionChange(newSelection);
   };
 
-  const groupedCommodities = AVAILABLE_COMMODITIES.reduce((acc, commodity) => {
-    if (!acc[commodity.category]) {
-      acc[commodity.category] = [];
+  const groupedCommodities = commodities.reduce((acc, commodity) => {
+    if (!acc[commodity.categoryName]) {
+      acc[commodity.categoryName] = [];
     }
-    acc[commodity.category].push(commodity);
+    acc[commodity.categoryName].push(commodity);
     return acc;
   }, {} as Record<string, Commodity[]>);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div>Loading commodities...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -59,15 +91,18 @@ export const CommoditySelector: React.FC<CommoditySelectorProps> = ({
               {commodities.map((commodity) => (
                 <div key={commodity.id} className="flex items-center space-x-2">
                   <Checkbox
-                    id={commodity.id}
-                    checked={selectedCommodities.includes(commodity.id)}
-                    onCheckedChange={() => handleCommodityToggle(commodity.id)}
+                    id={commodity.id.toString()}
+                    checked={selectedCommodities.includes(commodity.id.toString())}
+                    onCheckedChange={() => handleCommodityToggle(commodity.id.toString())}
                   />
                   <Label 
-                    htmlFor={commodity.id}
+                    htmlFor={commodity.id.toString()}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    {commodity.name}
+                    <div>
+                      <div>{commodity.name}</div>
+                      <div className="text-xs text-gray-500">{commodity.description}</div>
+                    </div>
                   </Label>
                 </div>
               ))}
@@ -78,5 +113,3 @@ export const CommoditySelector: React.FC<CommoditySelectorProps> = ({
     </Card>
   );
 };
-
-export { AVAILABLE_COMMODITIES };

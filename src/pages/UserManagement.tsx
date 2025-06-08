@@ -1,5 +1,7 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { API_CONFIG } from '@/api/config/api.config';
+import type { User } from '@/types/user';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,67 +11,125 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trash2, Edit, Plus, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface User {
-  id: string;
-  username: string;
-  role: 'admin' | 'user';
-  createdAt: Date;
-  status: 'active' | 'inactive';
-}
-
 export const UserManagement = () => {
+  const { user: authUser } = useAuth();
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([
-    { id: '1', username: 'admin', role: 'admin', createdAt: new Date(), status: 'active' },
-    { id: '2', username: 'user1', role: 'user', createdAt: new Date(), status: 'active' },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: '',
-    role: 'user' as 'admin' | 'user'
+    role: 'USER' as 'ADMIN' | 'USER'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingUser) {
-      setUsers(users.map(user => 
-        user.id === editingUser.id 
-          ? { ...user, username: formData.username, role: formData.role }
-          : user
-      ));
-      toast({ title: "Success", description: "User updated successfully!" });
-    } else {
-      const newUser: User = {
-        id: Date.now().toString(),
-        username: formData.username,
-        role: formData.role,
-        createdAt: new Date(),
-        status: 'active'
-      };
-      setUsers([...users, newUser]);
-      toast({ title: "Success", description: "User created successfully!" });
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.USERS.LIST}`, {
+        headers: {
+          'Accept': '*/*',
+          'Authorization': `Bearer ${authUser?.token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const data = await response.json();
+      setUsers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch users"
+      });
+    } finally {
+      setLoading(false);
     }
-    resetForm();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingUser 
+        ? `${API_CONFIG.BASE_URL}${API_CONFIG.USERS.UPDATE(editingUser.id)}`
+        : `${API_CONFIG.BASE_URL}${API_CONFIG.AUTH.REGISTER}`;
+
+      const response = await fetch(url, {
+        method: editingUser ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authUser?.token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save user');
+      }
+
+      await fetchUsers();
+      toast({ 
+        title: "Success", 
+        description: `User ${editingUser ? 'updated' : 'created'} successfully!` 
+      });
+      resetForm();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to save user'
+      });
+    }
+  };
+
+  const handleDelete = async (userId: number) => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.USERS.DELETE(userId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authUser?.token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      await fetchUsers();
+      toast({ title: "Success", description: "User deleted successfully!" });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete user"
+      });
+    }
   };
 
   const resetForm = () => {
-    setFormData({ username: '', password: '', role: 'user' });
+    setFormData({ username: '', email: '', password: '', role: 'USER' });
     setEditingUser(null);
     setShowForm(false);
   };
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
-    setFormData({ username: user.username, password: '', role: user.role });
+    setFormData({ username: user.username, email: user.email, password: '', role: user.role });
     setShowForm(true);
   };
 
-  const handleDelete = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
-    toast({ title: "Success", description: "User deleted successfully!" });
-  };
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -101,6 +161,16 @@ export const UserManagement = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
@@ -112,13 +182,13 @@ export const UserManagement = () => {
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={formData.role} onValueChange={(value: 'admin' | 'user') => setFormData({ ...formData, role: value })}>
+                <Select value={formData.role} onValueChange={(value: 'ADMIN' | 'USER') => setFormData({ ...formData, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="USER">User</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -144,8 +214,9 @@ export const UserManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Last Login</TableHead>
                 <TableHead>Created At</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -154,19 +225,16 @@ export const UserManagement = () => {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username}</TableCell>
+                  <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                      user.role === 'ADMIN' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
                     }`}>
                       {user.role}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                      {user.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                  <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleEdit(user)}>

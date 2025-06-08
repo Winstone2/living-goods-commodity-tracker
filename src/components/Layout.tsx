@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
-    ...(user?.role === 'admin' ? [
+    ...(user?.role === 'ADMIN' ? [
       { icon: Users, label: 'User Management', path: '/admin/users' },
       { icon: Settings, label: 'Settings', path: '/admin/settings' }
     ] : [])

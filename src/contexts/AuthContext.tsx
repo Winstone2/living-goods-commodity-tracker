@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData: User = {
           id: data.data.userId.toString(),
           username: data.data.username,
-          role: 'user',
+          role: data.data.role,
           token: data.data.token,
           createdAt: new Date()
         };

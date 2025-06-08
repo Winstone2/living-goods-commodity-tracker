@@ -1,11 +1,12 @@
 // Re-export database types for backward compatibility
 export * from './database';
+export * from './commodity-record';
 
 // Legacy types - keeping for backward compatibility with existing components
 export interface User {
   id: string;
   username: string;
-  role: 'admin' | 'user';
+  role: 'ADMIN' | 'USER';
   createdAt: Date;
   token?: string; // Optional for legacy support
 }

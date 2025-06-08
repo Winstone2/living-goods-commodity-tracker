@@ -1,51 +1,62 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, MapPin, Home, Users, TrendingUp, AlertTriangle, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '@/api/config/api.config';
+import type { DashboardStats } from '@/types/dashboard';
 
 export const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - in real app this would come from API
-  const stats = {
-    totalSubCounties: 12,
-    totalFacilities: 156,
-    totalCommunityUnits: 89,
-    totalWards: 234,
-    monthlyConsumption: [
-      { name: 'Kibera East', consumption: 250 },
-      { name: 'Mathare North', consumption: 180 },
-      { name: 'Mukuru', consumption: 320 },
-    ],
-    outOfStock: [
-      { unit: 'Kibera East', commodities: ['AL 6s', 'ORS Sachets'] },
-      { unit: 'Dandora', commodities: ['PCM Syrup'] },
-    ]
-  };
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.DASHBOARD.STATS}`, {
+          headers: {
+            'Accept': '*/*',
+            'Authorization': `Bearer ${user?.token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard stats');
+        }
+
+        const data = await response.json();
+        setStats(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [user?.token]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!stats) return <div>No data available</div>;
 
   const statCards = [
     {
-      title: 'Sub-Counties',
-      value: stats.totalSubCounties,
+      title: 'Counties',
+      value: stats.totalCounties,
       icon: Building2,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      title: 'Facilities',
-      value: stats.totalFacilities,
-      icon: Home,
+      title: 'Sub-Counties',
+      value: stats.totalSubCounties,
+      icon: Building2,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
-    },
-    {
-      title: 'Community Units',
-      value: stats.totalCommunityUnits,
-      icon: Users,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
     },
     {
       title: 'Wards',
@@ -53,6 +64,13 @@ export const Dashboard = () => {
       icon: MapPin,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50'
+    },
+    {
+      title: 'Facilities',
+      value: stats.totalFacilities,
+      icon: Home,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50'
     }
   ];
 
@@ -60,7 +78,7 @@ export const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">
-          {user?.role === 'admin' ? 'Admin Dashboard' : 'Community Health Dashboard'}
+          {user?.role === 'ADMIN' ? 'Admin Dashboard' : 'Community Health Dashboard'}
         </h1>
         <div className="text-sm text-gray-500">
           {new Date().toLocaleDateString('en-US', { 
@@ -98,13 +116,13 @@ export const Dashboard = () => {
         })}
       </div>
 
-      {/* Monthly Consumption & Out of Stock */}
+      {/* Monthly Consumption & Stock Outs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-green-600" />
-              <span>Monthly Consumption by Community Unit</span>
+              <span>Monthly Consumption</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -123,24 +141,15 @@ export const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span>Units Out of Stock</span>
+              <span>Stock Out Items ({stats.totalStockOuts})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.outOfStock.map((item, index) => (
+              {stats.stockOutStats.map((item, index) => (
                 <div key={index} className="p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="font-medium text-red-800 mb-2">{item.unit}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {item.commodities.map((commodity, idx) => (
-                      <span 
-                        key={idx}
-                        className="px-2 py-1 bg-red-200 text-red-800 text-xs rounded-full"
-                      >
-                        {commodity}
-                      </span>
-                    ))}
-                  </div>
+                  <div className="font-medium text-red-800 mb-2">{item.communityUnitName}</div>
+                  <div className="text-sm text-red-600">{item.commodityNames}</div>
                 </div>
               ))}
             </div>
