@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Living Goods Commodity Tracker</string>
+    <string name="title_activity_main">Living Goods Commodity Tracker</string>
+    <string name="package_name">org.livinggoods.commoditytracker</string>
+    <string name="custom_url_scheme">org.livinggoods.commoditytracker</string>
+</resources>
