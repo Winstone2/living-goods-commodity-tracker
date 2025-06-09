@@ -38,87 +38,89 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 font-comic px-4">
-      <div className="w-full max-w-md p-4 sm:p-6 flex-1 flex flex-col justify-center">
-        <div className="text-center mb-6 sm:mb-8">
-          <img 
-            src="/lovable-uploads/7334be09-684d-43d3-9eb3-3180f308eae4.png" 
-            alt="Living Goods Logo" 
-            className="w-24 sm:w-32 h-auto mx-auto mb-4"
-          />
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">
-            Living Goods
-          </h1>
-          <p className="text-base sm:text-lg text-orange-600 font-semibold">
-            Commodity Tracker App
-          </p>
-        </div>
-
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
-          <CardHeader className="space-y-1 px-4 sm:px-6">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-gray-800">
-              Sign In
-            </CardTitle>
-            <p className="text-center text-gray-600 text-sm sm:text-base">
-              Access your community health inventory
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-orange-50 font-comic">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 py-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-6">
+            <img 
+              src="/lovable-uploads/7334be09-684d-43d3-9eb3-3180f308eae4.png" 
+              alt="Living Goods Logo" 
+              className="w-20 sm:w-24 h-auto mx-auto mb-3"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold text-primary mb-1">
+              Living Goods
+            </h1>
+            <p className="text-sm sm:text-base text-orange-600 font-semibold">
+              Commodity Tracker App
             </p>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-gray-700">Username</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-primary text-base"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-700">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 h-12 border-gray-200 focus:border-primary text-base"
-                    required
-                  />
-                </div>
-              </div>
+          </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold text-base"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing In...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
+            <CardHeader className="space-y-1 px-4 sm:px-6 pb-4">
+              <CardTitle className="text-lg sm:text-xl font-bold text-center text-gray-800">
+                Sign In
+              </CardTitle>
+              <p className="text-center text-gray-600 text-xs sm:text-sm">
+                Access your community health inventory
+              </p>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6 pb-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-gray-700 text-sm">Username</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="Enter your username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10 h-11 border-gray-200 focus:border-primary text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-gray-700 text-sm">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10 h-11 border-gray-200 focus:border-primary text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold text-sm mt-6"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing In...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Footer */}
-      <footer className="w-full py-4 text-center text-sm text-gray-600 bg-white/50">
-        <p>&copy; 2024 Living Goods. All rights reserved.</p>
+      <footer className="py-3 text-center text-xs text-gray-600 bg-white/50">
+        <p>&copy; 2025 Living Goods. All rights reserved.</p>
       </footer>
     </div>
   );

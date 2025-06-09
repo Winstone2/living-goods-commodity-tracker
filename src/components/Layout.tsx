@@ -154,7 +154,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Footer */}
       <footer className="bg-white border-t py-3 text-center text-sm text-gray-600">
-        <p>&copy; 2024 Living Goods. All rights reserved.</p>
+        <p>&copy; 2025 Living Goods. All rights reserved.</p>
       </footer>
     </div>
   );

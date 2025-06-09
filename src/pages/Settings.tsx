@@ -52,18 +52,18 @@ export const Settings = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-2">
-          <SettingsIcon className="w-8 h-8 text-primary" />
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center space-x-2">
+          <SettingsIcon className="w-6 sm:w-8 h-6 sm:h-8 text-primary" />
           <span>System Settings</span>
         </h1>
-        <div className="flex space-x-2">
-          <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-sm">
             <Save className="w-4 h-4 mr-2" />
             Save Settings
           </Button>
-          <Button onClick={handleReset} variant="outline">
+          <Button onClick={handleReset} variant="outline" className="text-sm">
             Reset to Default
           </Button>
         </div>
@@ -72,27 +72,29 @@ export const Settings = () => {
       {/* Application Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <SettingsIcon className="w-5 h-5" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <SettingsIcon className="w-4 sm:w-5 h-4 sm:h-5" />
             <span>Application Settings</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="appName">Application Name</Label>
+            <Label htmlFor="appName" className="text-sm">Application Name</Label>
             <Input
               id="appName"
               value={settings.appName}
               onChange={(e) => setSettings({ ...settings, appName: e.target.value })}
+              className="text-sm"
             />
           </div>
           <div>
-            <Label htmlFor="appDescription">Application Description</Label>
+            <Label htmlFor="appDescription" className="text-sm">Application Description</Label>
             <Textarea
               id="appDescription"
               value={settings.appDescription}
               onChange={(e) => setSettings({ ...settings, appDescription: e.target.value })}
               rows={3}
+              className="text-sm"
             />
           </div>
         </CardContent>
@@ -101,16 +103,16 @@ export const Settings = () => {
       {/* Notification Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Bell className="w-5 h-5" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Bell className="w-4 sm:w-5 h-4 sm:h-5" />
             <span>Notification Settings</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="emailNotifications">Email Notifications</Label>
-              <p className="text-sm text-gray-600">Send email alerts for important events</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <Label htmlFor="emailNotifications" className="text-sm font-medium">Email Notifications</Label>
+              <p className="text-xs sm:text-sm text-gray-600 break-words">Send email alerts for important events</p>
             </div>
             <Switch
               id="emailNotifications"
@@ -118,10 +120,10 @@ export const Settings = () => {
               onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
             />
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="smsNotifications">SMS Notifications</Label>
-              <p className="text-sm text-gray-600">Send SMS alerts for critical updates</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <Label htmlFor="smsNotifications" className="text-sm font-medium">SMS Notifications</Label>
+              <p className="text-xs sm:text-sm text-gray-600 break-words">Send SMS alerts for critical updates</p>
             </div>
             <Switch
               id="smsNotifications"
@@ -135,16 +137,16 @@ export const Settings = () => {
       {/* Data Management */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Database className="w-5 h-5" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Database className="w-4 sm:w-5 h-4 sm:h-5" />
             <span>Data Management</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="autoBackup">Automatic Backup</Label>
-              <p className="text-sm text-gray-600">Automatically backup data daily</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <Label htmlFor="autoBackup" className="text-sm font-medium">Automatic Backup</Label>
+              <p className="text-xs sm:text-sm text-gray-600 break-words">Automatically backup data daily</p>
             </div>
             <Switch
               id="autoBackup"
@@ -153,21 +155,23 @@ export const Settings = () => {
             />
           </div>
           <div>
-            <Label htmlFor="dataRetentionDays">Data Retention Period (Days)</Label>
+            <Label htmlFor="dataRetentionDays" className="text-sm">Data Retention Period (Days)</Label>
             <Input
               id="dataRetentionDays"
               type="number"
               value={settings.dataRetentionDays}
               onChange={(e) => setSettings({ ...settings, dataRetentionDays: e.target.value })}
+              className="text-sm"
             />
           </div>
           <div>
-            <Label htmlFor="maxFileSize">Maximum File Upload Size (MB)</Label>
+            <Label htmlFor="maxFileSize" className="text-sm">Maximum File Upload Size (MB)</Label>
             <Input
               id="maxFileSize"
               type="number"
               value={settings.maxFileSize}
               onChange={(e) => setSettings({ ...settings, maxFileSize: e.target.value })}
+              className="text-sm"
             />
           </div>
         </CardContent>
@@ -176,16 +180,16 @@ export const Settings = () => {
       {/* Security Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Shield className="w-5 h-5" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Shield className="w-4 sm:w-5 h-4 sm:h-5" />
             <span>Security Settings</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="allowUserRegistration">Allow User Self-Registration</Label>
-              <p className="text-sm text-gray-600">Allow users to register themselves</p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <Label htmlFor="allowUserRegistration" className="text-sm font-medium">Allow User Self-Registration</Label>
+              <p className="text-xs sm:text-sm text-gray-600 break-words">Allow users to register themselves</p>
             </div>
             <Switch
               id="allowUserRegistration"
@@ -199,43 +203,45 @@ export const Settings = () => {
       {/* Theme Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Palette className="w-5 h-5" />
+          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+            <Palette className="w-4 sm:w-5 h-4 sm:h-5" />
             <span>Theme Settings</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="mainColor">Primary Color</Label>
+            <Label htmlFor="mainColor" className="text-sm">Primary Color</Label>
             <div className="flex items-center space-x-2">
               <Input
                 id="mainColor"
                 type="color"
                 value={settings.mainColor}
                 onChange={(e) => setSettings({ ...settings, mainColor: e.target.value })}
-                className="w-16 h-10"
+                className="w-12 sm:w-16 h-8 sm:h-10 flex-shrink-0"
               />
               <Input
                 value={settings.mainColor}
                 onChange={(e) => setSettings({ ...settings, mainColor: e.target.value })}
                 placeholder="#0066cc"
+                className="text-sm flex-1"
               />
             </div>
           </div>
           <div>
-            <Label htmlFor="secondaryColor">Secondary Color</Label>
+            <Label htmlFor="secondaryColor" className="text-sm">Secondary Color</Label>
             <div className="flex items-center space-x-2">
               <Input
                 id="secondaryColor"
                 type="color"
                 value={settings.secondaryColor}
                 onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
-                className="w-16 h-10"
+                className="w-12 sm:w-16 h-8 sm:h-10 flex-shrink-0"
               />
               <Input
                 value={settings.secondaryColor}
                 onChange={(e) => setSettings({ ...settings, secondaryColor: e.target.value })}
                 placeholder="#ff9900"
+                className="text-sm flex-1"
               />
             </div>
           </div>
