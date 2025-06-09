@@ -36,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockUsers = [
       { id: '1', username: 'admin', password: 'admin123', role: 'admin' as const },
       { id: '2', username: 'user1', password: 'user123', role: 'user' as const },
+      { id: '3', username: 'tony', password: 'tony1234', role: 'user' as const },
     ];
 
     const foundUser = mockUsers.find(u => u.username === username && u.password === password);
