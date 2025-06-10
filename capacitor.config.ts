@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'org.livinggoods.commoditytracker',
-  appName: 'Living Goods Commodity Tracker',
+  appId: 'app.lovableproject.living.goods.network',
+  appName: 'living-goods-commodity-tracer-network',
   webDir: 'dist',
   server: {
     cleartext: true,

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_CONFIG } from '@/api/config/api.config'; // This import now matches the file path
 import { User } from '@/types';
+import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 interface AuthContextType {
   user: User | null;
@@ -37,7 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': '*/*'
+          'Accept': '*/*',
+          'Authorization': AUTH_HEADER
+
         },
         body: JSON.stringify({ username, password })
       });

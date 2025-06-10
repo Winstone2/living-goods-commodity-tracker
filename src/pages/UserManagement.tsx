@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/api/config/api.config';
+import { AUTH_HEADER } from '@/api/config/auth-headers';
 import type { User } from '@/types/user';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ export const UserManagement = () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.USERS.LIST}`, {
         headers: {
           'Accept': '*/*',
-          'Authorization': `Bearer ${authUser?.token}`
+          'Authorization': AUTH_HEADER
         }
       });
 
@@ -45,8 +46,8 @@ export const UserManagement = () => {
 
       const data = await response.json();
       setUsers(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to fetch users');
       toast({
         variant: "destructive",
         title: "Error",
@@ -68,7 +69,8 @@ export const UserManagement = () => {
         method: editingUser ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authUser?.token}`
+          'Accept': '*/*',
+          'Authorization': AUTH_HEADER
         },
         body: JSON.stringify(formData)
       });
@@ -83,11 +85,11 @@ export const UserManagement = () => {
         description: `User ${editingUser ? 'updated' : 'created'} successfully!` 
       });
       resetForm();
-    } catch (err) {
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: err instanceof Error ? err.message : 'Failed to save user'
+        description: error instanceof Error ? error.message : 'Failed to save user'
       });
     }
   };
@@ -97,7 +99,8 @@ export const UserManagement = () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.USERS.DELETE(userId)}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${authUser?.token}`
+          'Accept': '*/*',
+          'Authorization': AUTH_HEADER
         }
       });
 
@@ -107,7 +110,7 @@ export const UserManagement = () => {
 
       await fetchUsers();
       toast({ title: "Success", description: "User deleted successfully!" });
-    } catch (err) {
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
