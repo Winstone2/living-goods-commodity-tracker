@@ -4,7 +4,21 @@ import { CommunityUnitForm } from '@/components/CommunityUnitForm';
 import { CommoditySelector } from '@/components/CommoditySelector';
 import { CommodityDetailsForm } from '@/components/CommodityDetailsForm';
 import { useToast } from '@/hooks/use-toast';
-import { CommunityUnit, CommodityRecord } from '@/types';
+import { CommodityRecord } from '@/types/commodity-record';
+
+// Define the CommunityUnit type locally to match what we need
+interface CommunityUnit {
+  id: number;
+  county: string;
+  subCounty: string;
+  ward: string;
+  linkFacility: string;
+  communityUnitName: string;
+  chaName: string;
+  totalCHPs: number;
+  createdAt: Date;
+  userId: string;
+}
 
 export const Inventory = () => {
   const { toast } = useToast();
@@ -151,7 +165,7 @@ export const Inventory = () => {
       {currentStep >= 3 && communityUnit && (
         <CommodityDetailsForm
           selectedCommodities={selectedCommodities}
-          communityUnitId={communityUnit.id as number}
+          communityUnitId={communityUnit.id!}
           onSubmit={handleCommodityRecordsSubmit}
         />
       )}
