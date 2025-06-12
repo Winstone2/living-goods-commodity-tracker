@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { CommodityRecord, CommodityRecordPartial } from '@/types/commodity-record';import { Commodity } from '@/types/commodity';
+import { CommodityRecord, CommodityRecordPartial } from '@/types/commodity-record';
+import { Commodity } from '@/types/commodity';
 import { API_CONFIG } from '@/api/config/api.config';
 
 const STORAGE_KEYS = {
@@ -283,7 +285,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-expired`}
                       type="number"
                       min="0"
-                      value={record.quantityExpired || ''}
+                      value={record.quantityExpired ?? ''}
                       onChange={(e) => updateRecord(commodityId, 'quantityExpired', parseInt(e.target.value) || 0)}
                       required
                     />
@@ -295,7 +297,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-damaged`}
                       type="number"
                       min="0"
-                      value={record.quantityDamaged || ''}
+                      value={record.quantityDamaged ?? ''}
                       onChange={(e) => updateRecord(commodityId, 'quantityDamaged', parseInt(e.target.value) || 0)}
                       required
                     />
@@ -307,7 +309,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-stockOnHand`}
                       type="number"
                       min="0"
-                      value={record.stockOnHand || ''}
+                      value={record.stockOnHand ?? ''}
                       onChange={(e) => updateRecord(commodityId, 'stockOnHand', parseInt(e.target.value) || 0)}
                       required
                     />
@@ -319,7 +321,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-issued`}
                       type="number"
                       min="0"
-                      value={record.quantityIssued || ''}
+                      value={record.quantityIssued ?? ''}
                       onChange={(e) => updateRecord(commodityId, 'quantityIssued', parseInt(e.target.value) || 0)}
                       required
                     />
@@ -331,7 +333,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-returned`}
                       type="number"
                       min="0"
-                      value={record.excessQuantityReturned || ''}
+                      value={record.excessQuantityReturned ?? ''}
                       onChange={(e) => updateRecord(commodityId, 'excessQuantityReturned', parseInt(e.target.value) || 0)}
                       required
                     />
@@ -343,7 +345,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-consumed`}
                       type="number"
                       min="0"
-                      value={record.quantityConsumed || ''}
+                      value={record.quantityConsumed ?? ''}
                       onChange={(e) => updateRecord(commodityId, 'quantityConsumed', parseInt(e.target.value) || 0)}
                       required
                     />
@@ -377,6 +379,16 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       type="date"
                       value={record.stockOutDate ? new Date(record.stockOutDate).toISOString().split('T')[0] : ''}
                       onChange={(e) => updateRecord(commodityId, 'stockOutDate', e.target.value ? new Date(e.target.value) : null)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor={`${commodityId}-earliest-expiry`}>Earliest Expiry Date</Label>
+                    <Input
+                      id={`${commodityId}-earliest-expiry`}
+                      type="date"
+                      value={record.earliestExpiryDate ? new Date(record.earliestExpiryDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => updateRecord(commodityId, 'earliestExpiryDate', e.target.value ? new Date(e.target.value) : null)}
                     />
                   </div>
                   
