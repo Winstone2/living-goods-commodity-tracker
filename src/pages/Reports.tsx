@@ -266,7 +266,7 @@ export const Reports = () => {
             doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 60);
 
             // Configure and add the table
-            doc.autoTable({
+            (doc as any).autoTable({
               head: [Object.keys(data[0])],
               body: data.map(Object.values),
               startY: 70,
@@ -356,7 +356,7 @@ export const Reports = () => {
       }
 
       // Filter by facility
-      if (filters.facility && item.facilityName !== filters.facility) {
+      if (filters.facility && item.facility !== filters.facility) {
         return false;
       }
 
@@ -552,7 +552,8 @@ export const Reports = () => {
           commodities: [],
           totalConsumption: 0,
           commoditiesOutOfStock: [],
-          lastUpdate: record.recordDate
+          lastUpdate: record.recordDate,
+          createdBy: record.createdByUsername || 'N/A'
         };
       }
 
@@ -566,7 +567,9 @@ export const Reports = () => {
         returned: record.excessQuantityReturned,
         closing: record.closingBalance,
         lastRestock: record.lastRestockDate,
-        stockOut: record.stockOutDate
+        stockOut: record.stockOutDate,
+        consumptionPeriod: record.consumptionPeriod,
+        closingBalance: record.closingBalance
       });
 
       acc[record.communityUnitId].totalConsumption += record.quantityConsumed;

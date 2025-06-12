@@ -16,7 +16,7 @@ export const Inventory = () => {
     // Generate a temporary ID for the community unit
     const unitWithId = {
       ...data,
-      id: `temp-${Date.now()}`,
+      id: Date.now(),
       createdAt: new Date(),
       userId: 'current-user-id' // This would come from auth context
     };
@@ -37,7 +37,7 @@ export const Inventory = () => {
     }
   };
 
-  const handleCommodityRecordsSubmit = (records: Partial<CommodityRecord>[]) => {
+  const handleCommodityRecordsSubmit = (records: CommodityRecord[]) => {
     // Here you would save to your backend/database
     console.log('Saving records:', { communityUnit, records });
     
@@ -151,7 +151,7 @@ export const Inventory = () => {
       {currentStep >= 3 && communityUnit && (
         <CommodityDetailsForm
           selectedCommodities={selectedCommodities}
-          communityUnitId={communityUnit.id!}
+          communityUnitId={communityUnit.id as number}
           onSubmit={handleCommodityRecordsSubmit}
         />
       )}
