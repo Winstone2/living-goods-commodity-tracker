@@ -1,34 +1,119 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { CommodityRecord } from '@/types';
-import { AVAILABLE_COMMODITIES } from './CommoditySelector';
+import { CommodityRecord, CommodityRecordPartial } from '@/types/commodity-record';import { Commodity } from '@/types/commodity';
+import { API_CONFIG } from '@/api/config/api.config';
+
+const STORAGE_KEYS = {
+  COMMUNITY_UNIT_ID: 'livingGoods_communityUnitId',
+  SELECTED_COMMODITIES: 'livingGoods_selectedCommodities'
+} as const;
 
 interface CommodityDetailsFormProps {
   selectedCommodities: string[];
-  communityUnitId: string;
-  onSubmit: (records: Partial<CommodityRecord>[]) => void;
+  communityUnitId: number;
+  onSubmit: (records: CommodityRecord[]) => void;
 }
 
 export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
   selectedCommodities,
-  communityUnitId,
+  communityUnitId: propsCommunityUnitId,
   onSubmit
 }) => {
   const { toast } = useToast();
-  const [commodityRecords, setCommodityRecords] = useState<Record<string, Partial<CommodityRecord>>>({});
+  
+  // Get and validate community unit ID from localStorage or props
+  const communityUnitId = useMemo(() => {
+    // First try to get from props
+    if (propsCommunityUnitId && propsCommunityUnitId > 0) {
+      console.log('Using community unit ID from props:', propsCommunityUnitId);
+      return propsCommunityUnitId;
+    }
 
+    // Then try localStorage
+    const storedId = localStorage.getItem(STORAGE_KEYS.COMMUNITY_UNIT_ID);
+    const parsedId = storedId ? Number(storedId) : null;
+    
+    console.log('Community Unit ID Check:', {
+      fromProps: propsCommunityUnitId,
+      fromStorage: storedId,
+      parsedId,
+      isValid: parsedId && parsedId > 0
+    });
+
+    return parsedId;
+  }, [propsCommunityUnitId]);
+
+  // Add validation effect
   useEffect(() => {
-    // Initialize records for selected commodities
+    if (!communityUnitId || communityUnitId <= 0) {
+      console.warn('Invalid Community Unit ID:', {
+        id: communityUnitId,
+        source: propsCommunityUnitId ? 'props' : 'localStorage'
+      });
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please create or select a community unit first"
+      });
+    }
+  }, [communityUnitId, propsCommunityUnitId, toast]);
+
+  const [commodities, setCommodities] = useState<Commodity[]>([]);
+  const [commodityRecords, setCommodityRecords] = useState<Record<string, CommodityRecordPartial>>({});
+  const [loading, setLoading] = useState(true);
+
+  // Fetch commodities data
+  useEffect(() => {
+    const fetchCommodities = async () => {
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.COMMODITIES.LIST}`, {
+          headers: {
+            'Accept': '*/*'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch commodities');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          setCommodities(result.data);
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load commodities"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCommodities();
+  }, []);
+
+  // Modified initialization effect with debugging
+  useEffect(() => {
+    console.log('Initializing Records:', {
+      selectedCommodities,
+      communityUnitId,
+      timestamp: new Date().toISOString()
+    });
+
     const initialRecords: Record<string, Partial<CommodityRecord>> = {};
     selectedCommodities.forEach(commodityId => {
       initialRecords[commodityId] = {
-        commodityId,
-        communityUnitId,
+        commodityId: Number(commodityId),
+        communityUnitId: Number(communityUnitId),
         quantityExpired: 0,
         quantityDamaged: 0,
         stockOnHand: 0,
@@ -36,9 +121,11 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         excessQuantityReturned: 0,
         quantityConsumed: 0,
         closingBalance: 0,
-        recordDate: new Date(),
+        consumptionPeriod: 1
       };
     });
+
+    console.log('Initialized Records:', initialRecords);
     setCommodityRecords(initialRecords);
   }, [selectedCommodities, communityUnitId]);
 
@@ -76,40 +163,95 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    const records = Object.values(commodityRecords);
-    const invalidRecords = records.filter(record => 
-      record.stockOnHand === undefined || 
-      record.quantityIssued === undefined || 
-      record.quantityConsumed === undefined ||
-      record.quantityExpired === undefined ||
-      record.quantityDamaged === undefined ||
-      record.excessQuantityReturned === undefined
-    );
+    try {
+      if (!communityUnitId || communityUnitId <= 0) {
+        throw new Error('Valid Community Unit ID is required');
+      }
 
-    if (invalidRecords.length > 0) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required commodity details fields.",
-        variant: "destructive",
+      console.log('Submitting with Community Unit ID:', {
+        id: communityUnitId,
+        source: propsCommunityUnitId ? 'props' : 'localStorage'
       });
-      return;
-    }
 
-    onSubmit(records);
+      // Add pre-submission validation logging
+      console.log('Pre-submission Check:', {
+        communityUnitId,
+        recordsCount: Object.keys(commodityRecords).length,
+        records: commodityRecords
+      });
+
+      const records = Object.values(commodityRecords).map(record => {
+        const formattedRecord = {
+          communityUnitId: Number(communityUnitId),
+          commodityId: Number(record.commodityId),
+          quantityExpired: Number(record.quantityExpired) || 0,
+          quantityDamaged: Number(record.quantityDamaged) || 0,
+          stockOnHand: Number(record.stockOnHand) || 0,
+          quantityIssued: Number(record.quantityIssued) || 0,
+          excessQuantityReturned: Number(record.excessQuantityReturned) || 0,
+          quantityConsumed: Number(record.quantityConsumed) || 0,
+          closingBalance: Number(record.closingBalance) || 0,
+          consumptionPeriod: Number(record.consumptionPeriod) || 1
+        };
+
+        console.log('Formatted Record:', formattedRecord);
+        return formattedRecord;
+      });
+
+      // Submit each record with logging
+      const promises = records.map(async (recordData) => {
+        console.log('Submitting Record:', {
+          url: `${API_CONFIG.BASE_URL}/records`,
+          method: 'POST',
+          data: recordData
+        });
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*'
+          },
+          body: JSON.stringify(recordData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Record Submission Failed:', {
+            status: response.status,
+            errorData,
+            record: recordData
+          });
+          throw new Error(errorData.message || 'Failed to save record');
+        }
+
+        return response.json();
+      });
+
+      const results = await Promise.all(promises);
+      console.log('All Records Submitted:', results);
+      onSubmit(records);
+
+    } catch (error) {
+      console.error('Submission Error:', {
+        error,
+        communityUnitId,
+        source: propsCommunityUnitId ? 'props' : 'localStorage'
+      });
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save records"
+      });
+    }
   };
 
-  if (selectedCommodities.length === 0) {
-    return (
-      <Card>
-        <CardContent className="text-center py-8">
-          <p className="text-gray-500">Please select commodities first to enter details.</p>
-        </CardContent>
-      </Card>
-    );
+  if (loading) {
+    return <div>Loading commodities...</div>;
   }
 
   return (
@@ -120,12 +262,19 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {selectedCommodities.map(commodityId => {
-            const commodity = AVAILABLE_COMMODITIES.find(c => c.id === commodityId);
+            const commodity = commodities.find(c => c.id.toString() === commodityId);
             const record = commodityRecords[commodityId] || {};
+
+            if (!commodity) return null;
 
             return (
               <div key={commodityId} className="border rounded-lg p-4 space-y-4">
-                <h3 className="text-lg font-semibold text-primary">{commodity?.name}</h3>
+                <h3 className="text-lg font-semibold text-primary">
+                  {commodity.name}
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({commodity.unitOfMeasure})
+                  </span>
+                </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>

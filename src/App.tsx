@@ -38,7 +38,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   
-  if (user?.role !== 'admin') {
+  if (user?.role !== 'ADMIN') {
     return <Navigate to="/dashboard" />;
   }
   

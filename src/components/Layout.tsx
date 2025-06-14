@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
-    ...(user?.role === 'admin' ? [
+    ...(user?.role === 'ADMIN' ? [
       { icon: Users, label: 'User Management', path: '/admin/users' },
       { icon: Settings, label: 'Settings', path: '/admin/settings' }
     ] : [])
@@ -154,7 +154,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Footer */}
       <footer className="bg-white border-t py-3 text-center text-sm text-gray-600">
-        <p>&copy; 2024 Living Goods. All rights reserved.</p>
+        <p>&copy; 2025 Living Goods. All rights reserved.</p>
       </footer>
     </div>
   );
