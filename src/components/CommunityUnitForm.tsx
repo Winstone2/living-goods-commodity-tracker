@@ -9,6 +9,7 @@ import { CommunityUnit } from '@/types';
 import { Location, LocationDropdowns } from '@/types/location';
 import { API_CONFIG } from '@/api/config/api.config';
 import { useAuth } from '@/contexts/AuthContext'; // Add this import
+import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 const STORAGE_KEYS = {
   COMMUNITY_UNIT_ID: 'livingGoods_communityUnitId',
@@ -167,7 +168,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',
-          'Authorization': `Bearer ${user?.token}`
+          'Authorization': AUTH_HEADER  // Just change this line
         },
         body: JSON.stringify(communityUnitData)
       });

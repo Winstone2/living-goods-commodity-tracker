@@ -4,7 +4,21 @@ import { CommunityUnitForm } from '@/components/CommunityUnitForm';
 import { CommoditySelector } from '@/components/CommoditySelector';
 import { CommodityDetailsForm } from '@/components/CommodityDetailsForm';
 import { useToast } from '@/hooks/use-toast';
-import { CommunityUnit, CommodityRecord } from '@/types';
+import { CommodityRecord } from '@/types/commodity-record';
+
+// Define the CommunityUnit type locally to match what we need
+interface CommunityUnit {
+  id: number;
+  county: string;
+  subCounty: string;
+  ward: string;
+  linkFacility: string;
+  communityUnitName: string;
+  chaName: string;
+  totalCHPs: number;
+  createdAt: Date;
+  userId: string;
+}
 
 export const Inventory = () => {
   const { toast } = useToast();
@@ -16,7 +30,7 @@ export const Inventory = () => {
     // Generate a temporary ID for the community unit
     const unitWithId = {
       ...data,
-      id: `temp-${Date.now()}`,
+      id: Date.now(),
       createdAt: new Date(),
       userId: 'current-user-id' // This would come from auth context
     };
@@ -37,7 +51,7 @@ export const Inventory = () => {
     }
   };
 
-  const handleCommodityRecordsSubmit = (records: Partial<CommodityRecord>[]) => {
+  const handleCommodityRecordsSubmit = (records: CommodityRecord[]) => {
     // Here you would save to your backend/database
     console.log('Saving records:', { communityUnit, records });
     

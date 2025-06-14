@@ -5,6 +5,7 @@ import { API_CONFIG } from '@/api/config/api.config';
 import { useToast } from '@/hooks/use-toast';
 import { CommunityUnitResponse } from '@/types/community-unit';
 import { CommodityDetailsForm } from '@/components/CommodityDetailsForm';
+import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 interface CommunityUnitFormData {
   chaName: string;
@@ -63,7 +64,9 @@ export const CommunityUnitFormPage: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': '*/*'
+          'Accept': '*/*',
+        'Authorization': AUTH_HEADER  // Just change this line
+
         },
         body: JSON.stringify(data)
       });

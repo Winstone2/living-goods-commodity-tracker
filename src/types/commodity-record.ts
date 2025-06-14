@@ -1,3 +1,4 @@
+
 // Base interface for commodity record
 export interface CommodityRecord {
   commodityId: number;
@@ -12,6 +13,7 @@ export interface CommodityRecord {
   consumptionPeriod?: number;
   lastRestockDate?: Date;
   stockOutDate?: Date;
+  earliestExpiryDate?: Date;
   recordDate?: Date;
 }
 
@@ -26,4 +28,4 @@ export interface CommodityRecordResponse {
 }
 
 // API request type
-export type CommodityRecordRequest = Omit<CommodityRecord, 'lastRestockDate' | 'stockOutDate' | 'recordDate'>;
+export type CommodityRecordRequest = Omit<CommodityRecord, 'lastRestockDate' | 'stockOutDate' | 'earliestExpiryDate' | 'recordDate'>;

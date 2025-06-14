@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/api/config/api.config';
 import type { DashboardStats } from '@/types/dashboard';
+import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -19,7 +20,8 @@ export const Dashboard = () => {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.DASHBOARD.STATS}`, {
           headers: {
             'Accept': '*/*',
-            'Authorization': `Bearer ${user?.token}`
+              'Authorization': AUTH_HEADER  // Just change this line
+
           }
         });
 
