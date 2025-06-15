@@ -124,6 +124,8 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         consumptionPeriod: 1,
         earliestExpiryDate: null,
         quantityToOrder: 0,
+        lastRestockDate: null,
+        stockOutDate: null,
       };
     });
 
@@ -170,6 +172,34 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     });
   };
 
+  const validateRecord = (record: any) => {
+    // Validate dates
+    const now = new Date();
+    
+    if (record.earliestExpiryDate) {
+      const expiryDate = new Date(record.earliestExpiryDate);
+      if (expiryDate < now) {
+        throw new Error('Expiry date cannot be in the past');
+      }
+    }
+
+    if (record.lastRestockDate) {
+      const restockDate = new Date(record.lastRestockDate);
+      if (restockDate > now) {
+        throw new Error('Restock date cannot be in the future');
+      }
+    }
+
+    if (record.stockOutDate) {
+      const stockOutDate = new Date(record.stockOutDate);
+      if (stockOutDate > now) {
+        throw new Error('Stock out date cannot be in the future');
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -203,7 +233,18 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           closingBalance: Number(record.closingBalance) || 0,
           consumptionPeriod: Number(record.consumptionPeriod) || 1,
           quantityToOrder: Number(record.quantityToOrder) || 0,
-          earliestExpiryDate: record.earliestExpiryDate || null,
+          earliestExpiryDate: record.earliestExpiryDate 
+            ? new Date(record.earliestExpiryDate).toISOString() 
+            : null,
+          lastRestockDate: record.lastRestockDate 
+            ? new Date(record.lastRestockDate).toISOString() 
+            : null,
+          stockOutDate: record.stockOutDate 
+            ? new Date(record.stockOutDate).toISOString() 
+            : null,
+          recordDate: new Date().toISOString(), 
+
+          // Use current date for record creation
         };
 
         console.log('Formatted Record:', formattedRecord);
@@ -215,9 +256,15 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         console.log('Submitting Record:', {
           url: `${API_CONFIG.BASE_URL}/records`,
           method: 'POST',
-          data: recordData
-
-        
+          data: {
+            ...recordData,
+            dates: {
+              earliestExpiryDate: recordData.earliestExpiryDate,
+              lastRestockDate: recordData.lastRestockDate,
+              stockOutDate: recordData.stockOutDate,
+              recordDate: recordData.recordDate
+            }
+          }
         });
 
         const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
@@ -226,7 +273,14 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
             'Content-Type': 'application/json',
             'Accept': '*/*'
           },
-          body: JSON.stringify(recordData)
+          body: JSON.stringify({
+            ...recordData,
+            // Ensure dates are properly formatted
+            earliestExpiryDate: recordData.earliestExpiryDate,
+            lastRestockDate: recordData.lastRestockDate,
+            stockOutDate: recordData.stockOutDate,
+            recordDate: recordData.recordDate
+          })
         });
 
         if (!response.ok) {

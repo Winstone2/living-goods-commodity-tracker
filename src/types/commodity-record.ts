@@ -15,6 +15,7 @@ export interface CommodityRecord {
   recordDate?: Date;
   earliestExpiryDate: string | null;
   quantityToOrder: number;
+
 }
 
 // Partial type for form state
