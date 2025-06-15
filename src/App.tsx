@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import { UserManagement } from "@/pages/UserManagement";
 import { Settings } from "@/pages/Settings";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import CommunityUnits from '@/pages/CommunityUnits';
 
 const queryClient = new QueryClient();
 
@@ -80,6 +80,7 @@ const AppRoutes = () => {
           </AdminRoute>
         </ProtectedRoute>
       } />
+      <Route path="/community-units" element={<CommunityUnits />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

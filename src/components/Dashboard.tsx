@@ -1,11 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, MapPin, Home, Users, TrendingUp, AlertTriangle, FileText } from 'lucide-react';
+import { Building2, MapPin, Home, Users, TrendingUp, AlertTriangle, FileText, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/api/config/api.config';
 import type { DashboardStats } from '@/types/dashboard';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
+
+const mockCommunityUnits = [
+  {
+    id: 1,
+    name: 'Community Unit A',
+    stocks: [
+      { commodity: 'Paracetamol', quantity: 120 },
+      { commodity: 'ORS', quantity: 80 }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Community Unit B',
+    stocks: [
+      { commodity: 'Zinc', quantity: 50 },
+      { commodity: 'Paracetamol', quantity: 30 }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Community Unit C',
+    stocks: [
+      { commodity: 'ORS', quantity: 0 },
+      { commodity: 'Zinc', quantity: 10 }
+    ]
+  }
+];
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -13,6 +40,7 @@ export const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCommunityUnits, setShowCommunityUnits] = useState(false);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
@@ -174,7 +202,7 @@ export const Dashboard = () => {
               <span className="block font-medium">Add New Record</span>
             </button>
             <button 
-              onClick={() => navigate('/inventory')}
+              onClick={() => navigate('/community-units')}
               className="p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Users className="w-6 h-6 mx-auto mb-2" />
@@ -190,6 +218,47 @@ export const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Community Units Modal */}
+      {showCommunityUnits && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative">
+            <button
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowCommunityUnits(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Community Units & Stocks</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="py-2 px-4 border">Community Unit</th>
+                    <th className="py-2 px-4 border">Commodity</th>
+                    <th className="py-2 px-4 border">Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mockCommunityUnits.map(unit =>
+                    unit.stocks.map((stock, idx) => (
+                      <tr key={unit.id + '-' + stock.commodity}>
+                        {idx === 0 && (
+                          <td className="py-2 px-4 border font-medium" rowSpan={unit.stocks.length}>
+                            {unit.name}
+                          </td>
+                        )}
+                        <td className="py-2 px-4 border">{stock.commodity}</td>
+                        <td className="py-2 px-4 border">{stock.quantity}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
