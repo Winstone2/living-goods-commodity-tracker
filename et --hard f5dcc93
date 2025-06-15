@@ -1,0 +1,18 @@
+[33m81eff21[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m lattest changes
+[33mf5dcc93[m merging
+[33m97ef000[m  api config
+[33m46bbc6f[m Add favicon using the logo image
+[33mb2659f6[m Merged
+[33mecbdcb9[m  building for androind app
+[33m6ce8955[m Fix mobile responsiveness and footer copyright
+[33m7541bc5[m Dashboard and Invebtory record api impl
+[33md962e2c[m Authentication thru' API
+[33mf915afc[m Refactor: Implement database structure
+[33mc3a7f0c[m feat: Add report filters and responsiveness
+[33m1836010[m Fix: Improve mobile responsiveness
+[33m92341aa[m Fix: Make app responsive on mobile
+[33ma29ceb4[m Fix: Maintain font and add footer
+[33m2366904[m Fix: Implement missing features and fix bugs
+[33meb787d2[m Implement missing features
+[33m9deda99[m Implement Community Commodity Tracker App
+[33m02087cf[m Use tech stack vite_react_shadcn_ts

@@ -13,10 +13,15 @@ export interface CommodityRecord {
   lastRestockDate?: Date;
   stockOutDate?: Date;
   recordDate?: Date;
+  earliestExpiryDate: string | null;
+  quantityToOrder: number;
 }
 
 // Partial type for form state
-export type CommodityRecordPartial = Partial<CommodityRecord>;
+export type CommodityRecordPartial = Partial<CommodityRecord> & {
+  earliestExpiryDate?: string | null;
+  quantityToOrder?: number;
+};
 
 // API response type
 export interface CommodityRecordResponse {

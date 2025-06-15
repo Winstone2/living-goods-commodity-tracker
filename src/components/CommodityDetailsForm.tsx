@@ -121,7 +121,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         excessQuantityReturned: 0,
         quantityConsumed: 0,
         closingBalance: 0,
-        consumptionPeriod: 1
+        consumptionPeriod: 1,
+        earliestExpiryDate: null,
+        quantityToOrder: 0,
       };
     });
 
@@ -139,8 +141,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         }
       };
 
-      // Auto-calculate closing balance
       const record = updated[commodityId];
+
+      // Calculate closing balance
       if (field !== 'closingBalance') {
         const closingBalance = 
           (record.stockOnHand || 0) + 
@@ -152,12 +155,15 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         updated[commodityId].closingBalance = closingBalance;
       }
 
-      // Auto-calculate consumption period if both dates are provided
-      if (record.lastRestockDate && record.stockOutDate) {
-        const diffTime = new Date(record.stockOutDate).getTime() - new Date(record.lastRestockDate).getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        updated[commodityId].consumptionPeriod = diffDays;
-      }
+      // Calculate quantity to order
+      const monthsInStock = 1.5; // 1 month + 2 weeks buffer
+      const averageMonthlyConsumption = (record.quantityConsumed || 0);
+      const quantityToOrder = Math.max(
+        Math.ceil((averageMonthlyConsumption * monthsInStock) - (record.closingBalance || 0)),
+        0
+      );
+      
+      updated[commodityId].quantityToOrder = quantityToOrder;
 
       return updated;
     });
@@ -207,6 +213,8 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           url: `${API_CONFIG.BASE_URL}/records`,
           method: 'POST',
           data: recordData
+
+        
         });
 
         const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
@@ -361,6 +369,20 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                   </div>
                   
                   <div>
+                    <Label htmlFor={`${commodityId}-toOrder`}>Quantity to Order (Auto-calculated)</Label>
+                    <Input
+                      id={`${commodityId}-toOrder`}
+                      type="number"
+                      value={record.quantityToOrder || 0}
+                      readOnly
+                      className="bg-gray-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Based on 1.5 months stock level (4 weeks + 2 weeks buffer)
+                    </p>
+                  </div>
+                  
+                  <div>
                     <Label htmlFor={`${commodityId}-restock`}>Last Restock Date</Label>
                     <Input
                       id={`${commodityId}-restock`}
@@ -388,6 +410,17 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       value={record.consumptionPeriod || ''}
                       readOnly
                       className="bg-gray-100"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor={`${commodityId}-expiry`}>Earliest Expiry Date</Label>
+                    <Input
+                      id={`${commodityId}-expiry`}
+                      type="date"
+                      value={record.earliestExpiryDate ? new Date(record.earliestExpiryDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => updateRecord(commodityId, 'earliestExpiryDate', e.target.value ? new Date(e.target.value) : null)}
+                      min={new Date().toISOString().split('T')[0]} // Cannot be earlier than today
                     />
                   </div>
                 </div>
