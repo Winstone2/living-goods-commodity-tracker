@@ -208,88 +208,37 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         throw new Error('Valid Community Unit ID is required');
       }
 
-      console.log('Submitting with Community Unit ID:', {
-        id: communityUnitId,
-        source: propsCommunityUnitId ? 'props' : 'localStorage'
-      });
+      const records = Object.values(commodityRecords).map(record => ({
+        // Match exact API format
+        communityUnitId: Number(communityUnitId),
+        commodityId: Number(record.commodityId),
+        quantityExpired: Number(record.quantityExpired) || 0,
+        quantityDamaged: Number(record.quantityDamaged) || 0,
+        stockOnHand: Number(record.stockOnHand) || 0,
+        quantityIssued: Number(record.quantityIssued) || 0,
+        excessQuantityReturned: Number(record.excessQuantityReturned) || 0,
+        quantityConsumed: Number(record.quantityConsumed) || 0,
+        closingBalance: Number(record.closingBalance) || 0,
+        consumptionPeriod: 1, // Fixed value as per API
+        earliestExpiryDate: record.earliestExpiryDate 
+          ? new Date(record.earliestExpiryDate).toISOString()
+          : new Date().toISOString(), // Provide current date if not set
+        quantityToOrder: Number(record.quantityToOrder) || 0
+      }));
 
-      // Add pre-submission validation logging
-      console.log('Pre-submission Check:', {
-        communityUnitId,
-        recordsCount: Object.keys(commodityRecords).length,
-        records: commodityRecords
-      });
-
-      const records = Object.values(commodityRecords).map(record => {
-        const formattedRecord = {
-          communityUnitId: Number(communityUnitId),
-          commodityId: Number(record.commodityId),
-          quantityExpired: Number(record.quantityExpired) || 0,
-          quantityDamaged: Number(record.quantityDamaged) || 0,
-          stockOnHand: Number(record.stockOnHand) || 0,
-          quantityIssued: Number(record.quantityIssued) || 0,
-          excessQuantityReturned: Number(record.excessQuantityReturned) || 0,
-          quantityConsumed: Number(record.quantityConsumed) || 0,
-          closingBalance: Number(record.closingBalance) || 0,
-          consumptionPeriod: Number(record.consumptionPeriod) || 1,
-          quantityToOrder: Number(record.quantityToOrder) || 0,
-          earliestExpiryDate: record.earliestExpiryDate 
-            ? new Date(record.earliestExpiryDate).toISOString() 
-            : null,
-          lastRestockDate: record.lastRestockDate 
-            ? new Date(record.lastRestockDate).toISOString() 
-            : null,
-          stockOutDate: record.stockOutDate 
-            ? new Date(record.stockOutDate).toISOString() 
-            : null,
-          recordDate: new Date().toISOString(), 
-
-          // Use current date for record creation
-        };
-
-        console.log('Formatted Record:', formattedRecord);
-        return formattedRecord;
-      });
-
-      // Submit each record with logging
+      // Submit each record
       const promises = records.map(async (recordData) => {
-        console.log('Submitting Record:', {
-          url: `${API_CONFIG.BASE_URL}/records`,
-          method: 'POST',
-          data: {
-            ...recordData,
-            dates: {
-              earliestExpiryDate: recordData.earliestExpiryDate,
-              lastRestockDate: recordData.lastRestockDate,
-              stockOutDate: recordData.stockOutDate,
-              recordDate: recordData.recordDate
-            }
-          }
-        });
-
         const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': '*/*'
           },
-          body: JSON.stringify({
-            ...recordData,
-            // Ensure dates are properly formatted
-            earliestExpiryDate: recordData.earliestExpiryDate,
-            lastRestockDate: recordData.lastRestockDate,
-            stockOutDate: recordData.stockOutDate,
-            recordDate: recordData.recordDate
-          })
+          body: JSON.stringify(recordData) // Send exact format
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('Record Submission Failed:', {
-            status: response.status,
-            errorData,
-            record: recordData
-          });
           throw new Error(errorData.message || 'Failed to save record');
         }
 
@@ -297,16 +246,10 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
       });
 
       const results = await Promise.all(promises);
-      console.log('All Records Submitted:', results);
       onSubmit(records);
 
     } catch (error) {
-      console.error('Submission Error:', {
-        error,
-        communityUnitId,
-        source: propsCommunityUnitId ? 'props' : 'localStorage'
-      });
-      
+      console.error('Submission Error:', error);
       toast({
         variant: "destructive",
         title: "Error",
