@@ -143,23 +143,24 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
 
       const record = updated[commodityId];
 
-      // Calculate closing balance
+      // Calculate closing balance with updated formula
       if (field !== 'closingBalance') {
         const closingBalance = 
           (record.stockOnHand || 0) + 
           (record.quantityIssued || 0) - 
           ((record.quantityConsumed || 0) + 
            (record.quantityExpired || 0) + 
-           (record.quantityDamaged || 0));
+           (record.quantityDamaged || 0) + 
+           (record.excessQuantityReturned || 0)); // Added excess quantity returned
         
-        updated[commodityId].closingBalance = closingBalance;
+        updated[commodityId].closingBalance = Math.max(closingBalance, 0); // Ensure it's not negative
       }
 
-      // Calculate quantity to order
-      const monthsInStock = 1.5; // 1 month + 2 weeks buffer
+      // Calculate quantity to order (keep existing calculation)
+      const monthsInStock = 1.5;
       const averageMonthlyConsumption = (record.quantityConsumed || 0);
       const quantityToOrder = Math.max(
-        Math.ceil((averageMonthlyConsumption * monthsInStock) - (record.closingBalance || 0)),
+        Math.ceil((averageMonthlyConsumption * monthsInStock) - (updated[commodityId].closingBalance || 0)),
         0
       );
       
@@ -200,7 +201,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           excessQuantityReturned: Number(record.excessQuantityReturned) || 0,
           quantityConsumed: Number(record.quantityConsumed) || 0,
           closingBalance: Number(record.closingBalance) || 0,
-          consumptionPeriod: Number(record.consumptionPeriod) || 1
+          consumptionPeriod: Number(record.consumptionPeriod) || 1,
+          quantityToOrder: Number(record.quantityToOrder) || 0,
+          earliestExpiryDate: record.earliestExpiryDate || null,
         };
 
         console.log('Formatted Record:', formattedRecord);
