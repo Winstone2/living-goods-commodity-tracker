@@ -350,6 +350,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       min="0"
                       placeholder="0"
                       value={record.quantityExpired === 0 ? '' : record.quantityExpired}
+                      
                       onChange={(e) => updateRecord(commodityId, 'quantityExpired', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
@@ -416,7 +417,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       placeholder="0"
                       value={record.quantityConsumed === 0 ? '' : record.quantityConsumed}
                       onChange={(e) => updateRecord(commodityId, 'quantityConsumed', e.target.value === '' ? 0 : parseInt(e.target.value))}
-                      required
+                      
                     />
                   </div>
                   
@@ -481,7 +482,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                     <Input
                       id={`${commodityId}-expiry`}
                       type="date"
-                      value={record.earliestExpiryDate ? new Date(record.earliestExpiryDate).toISOString().split('T')[0] : ''}
+                      value={record.earliestExpiryDate ? '' : ''}
                       onChange={(e) => updateRecord(commodityId, 'earliestExpiryDate', e.target.value ? new Date(e.target.value) : null)}
                       min={new Date().toISOString().split('T')[0]} // Cannot be earlier than today
                     />

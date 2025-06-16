@@ -12,6 +12,7 @@ export interface CommunityUnitResponse {
     linkFacilityId: number;
     createdById: number | null;
     createdAt: string;
+    stockLevel
   };
   timestamp: string;
   totalCHPsCounted:number

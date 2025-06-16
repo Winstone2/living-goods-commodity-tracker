@@ -15,13 +15,13 @@ import type { DashboardStats } from '@/types/dashboard';
 import { SubCounty } from '@/types';
 
 // Add these imports at the top
-import { 
-  Building, 
-  Map, 
-  MapPin, 
-  Home, 
-  Users, 
-  Package, 
+import {
+  Building,
+  Map,
+  MapPin,
+  Home,
+  Users,
+  Package,
   AlertTriangle,
   Check,
   ArrowDown,
@@ -181,10 +181,15 @@ export const Reports = () => {
     facility: '',
     communityUnit: ''
   });
-  
+
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [filteredCount, setFilteredCount] = useState<number>(0);
+  // Add these state variables after existing useState declarations
+  const [filteredSubCounties, setFilteredSubCounties] = useState<SubCounty[]>([]);
+  const [filteredWards, setFilteredWards] = useState<Ward[]>([]);
+  const [filteredFacilities, setFilteredFacilities] = useState<Facility[]>([]);
+  const [filteredCommunityUnits, setFilteredCommunityUnits] = useState<CommunityUnit[]>([]);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -253,7 +258,7 @@ export const Reports = () => {
           try {
             const doc = new jsPDF('landscape', 'pt', 'a4');
             const data = getExportData(getFilteredReportData());
-            
+
             doc.setProperties({
               title: 'Commodity Report',
               subject: 'Commodity Tracking Report',
@@ -271,12 +276,12 @@ export const Reports = () => {
               head: [Object.keys(data[0])],
               body: data.map(Object.values),
               startY: 70,
-              styles: { 
+              styles: {
                 fontSize: 7,
                 cellPadding: 2,
                 overflow: 'linebreak'
               },
-              headStyles: { 
+              headStyles: {
                 fillColor: [63, 131, 248],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold'
@@ -325,6 +330,85 @@ export const Reports = () => {
     }
   };
 
+
+  // Add these helper functions before getFilteredReportData
+  const getFilteredSubCounties = () => {
+    if (!filters.county || filters.county === 'all') {
+      return subCounties;
+    }
+    return subCounties.filter(sc => sc.countyId?.toString() === filters.county);
+  };
+
+  const getFilteredWards = () => {
+    if (!filters.subCounty) {
+      if (!filters.county || filters.county === 'all') {
+        return wards;
+      }
+      // If only county is selected, show wards from all sub-counties in that county
+      const countySubCounties = getFilteredSubCounties();
+      const subCountyIds = countySubCounties.map(sc => sc.id);
+      return wards.filter(ward =>
+        ward.subCountyId === null || subCountyIds.includes(ward.subCountyId)
+      );
+    }
+    // If sub-county is selected, show only wards from that sub-county
+    return wards.filter(ward => ward.subCountyId?.toString() === filters.subCounty);
+  };
+
+  const getFilteredFacilities = () => {
+    if (!filters.ward) {
+      if (!filters.subCounty) {
+        if (!filters.county || filters.county === 'all') {
+          return facilities;
+        }
+        // County selected but no sub-county - show facilities from all wards in county
+        const countyWards = getFilteredWards();
+        return facilities.filter(facility =>
+          countyWards.some(ward => ward.name === facility.type) // You'll need to adjust this based on how Ward relates to Facility
+        );
+      }
+      // Sub-county selected but no ward - show facilities from all wards in sub-county
+      const subCountyWards = getFilteredWards();
+      return facilities.filter(facility =>
+        subCountyWards.some(ward => ward.name === facility.type) // You'll need to adjust this based on how Ward relates to Facility
+      );
+    }
+
+    // Ward selected - show facilities linked to community units in that ward
+    const wardCommunityUnits = communityUnits.filter(cu =>
+      wards.find(w => w.name === filters.ward && w.subCountyId === cu.subCountyId)
+    );
+
+    return facilities.filter(facility =>
+      wardCommunityUnits.some(cu => cu.linkFacilityId === facility.wardId) // Adjust based on how Facility ID is stored
+    );
+  };
+
+  const getFilteredCommunityUnits = () => {
+    let filtered = communityUnits;
+
+    if (filters.county && filters.county !== 'all') {
+      filtered = filtered.filter(cu => cu.countyId?.toString() === filters.county);
+    }
+
+    if (filters.subCounty) {
+      filtered = filtered.filter(cu => cu.subCountyId?.toString() === filters.subCounty);
+    }
+
+    if (filters.ward) {
+      filtered = filtered.filter(cu => cu.wardId?.toString() === filters.ward);
+    }
+
+    if (filters.facility) {
+      const selectedFacility = facilities.find(f => f.name === filters.facility);
+      if (selectedFacility) {
+        // Assuming facilities have an ID that matches linkFacilityId
+        filtered = filtered.filter(cu => cu.linkFacilityId === selectedFacility.wardId); // You'll need the facility ID here
+      }
+    }
+
+    return filtered;
+  };
   // Add this function before the return statement
   const getFilteredReportData = () => {
     return reportData.filter(item => {
@@ -478,7 +562,7 @@ export const Reports = () => {
     const fetchAllData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch stats first
         const statsResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.DASHBOARD.STATS}`, {
           headers: getDefaultHeaders()
@@ -548,6 +632,14 @@ export const Reports = () => {
       console.log('Counties loaded:', counties);
     }
   }, [counties]);
+
+  // Add this useEffect to update filtered options when dependencies change
+  useEffect(() => {
+    setFilteredSubCounties(getFilteredSubCounties());
+    setFilteredWards(getFilteredWards());
+    setFilteredFacilities(getFilteredFacilities());
+    setFilteredCommunityUnits(getFilteredCommunityUnits());
+  }, [filters.county, filters.subCounty, filters.ward, filters.facility, subCounties, wards, facilities, communityUnits]);
 
   const processReportData = (records: RecordData[]): ProcessedReportData[] => {
     const groupedByCU = records.reduce((acc, record) => {
@@ -646,9 +738,9 @@ export const Reports = () => {
               <Filter className="w-5 h-5" />
               <span>Filter Reports</span>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={toggleFilters}
               className="h-8 w-8 p-0 rounded-full"
             >
@@ -687,18 +779,18 @@ export const Reports = () => {
             </div>
             <div>
               <Label>County</Label>
-              <Select 
-                value={filters.county} 
+              <Select
+                value={filters.county}
                 onValueChange={(value) => {
                   console.log('Selected county:', value);
-                  setFilters({ 
-                    ...filters, 
+                  setFilters({
+                    ...filters,
                     county: value,
-                    subCounty: '',
+                    subCounty: '', // Reset dependent filters
                     ward: '',
                     facility: '',
                     communityUnit: ''
-                  })
+                  });
                 }}
               >
                 <SelectTrigger>
@@ -707,8 +799,8 @@ export const Reports = () => {
                 <SelectContent>
                   <SelectItem value="all">All Counties</SelectItem>
                   {counties && counties.length > 0 && counties.map((county) => (
-                    <SelectItem 
-                      key={county.id} 
+                    <SelectItem
+                      key={county.id}
                       value={county.id.toString()}
                     >
                       {county.name}
@@ -719,60 +811,74 @@ export const Reports = () => {
             </div>
             <div>
               <Label>Sub-County</Label>
-              <Select 
-                value={filters.subCounty} 
-                onValueChange={(value) => setFilters({ ...filters, subCounty: value })}
+              <Select
+                value={filters.subCounty}
+                onValueChange={(value) => setFilters({
+                  ...filters,
+                  subCounty: value,
+                  ward: '', // Reset dependent filters
+                  facility: '',
+                  communityUnit: ''
+                })}
+                disabled={!filters.county || filters.county === 'all'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Sub-County" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subCounties
-                    .filter(sc => {
-                      // Add null checks and logging
-                      if (!filters.county) return true;
-                      if (!sc || !sc.county_id) {
-                        console.warn('Invalid subcounty data:', sc);
-                        return false;
-                      }
-                      return sc.county_id.toString() === filters.county;
-                    })
-                    .map((subCounty) => (
-                      <SelectItem 
-                        key={subCounty.id} 
-                        value={subCounty.id.toString()}
-                      >
-                        {subCounty.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Ward</Label>
-              <Select value={filters.ward} onValueChange={(value) => setFilters({ ...filters, ward: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Ward" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wards.map((ward, index) => (
-                    <SelectItem key={index} value={ward.name}>
-                      {ward.name}
+                  {filteredSubCounties.map((subCounty) => (
+                    <SelectItem
+                      key={subCounty.id}
+                      value={subCounty.id.toString()}
+                    >
+                      {subCounty.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+           <div>
+  <Label>Ward</Label>
+  <Select 
+    value={filters.ward} 
+    onValueChange={(value) => setFilters({ 
+      ...filters, 
+      ward: value,
+      facility: '', // Reset dependent filters
+      communityUnit: ''
+    })}
+    disabled={!filters.subCounty}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Select Ward" />
+    </SelectTrigger>
+    <SelectContent>
+      {filteredWards.map((ward, index) => (
+        <SelectItem key={index} value={ward.name}>
+          {ward.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
             {isFiltersExpanded && (
               <>
                 <div>
                   <Label>Linked Facility</Label>
-                  <Select value={filters.facility} onValueChange={(value) => setFilters({ ...filters, facility: value })}>
+                  <Select
+                    value={filters.facility}
+                    onValueChange={(value) => setFilters({
+                      ...filters,
+                      facility: value,
+                      communityUnit: '' // Reset dependent filter
+                    })}
+                    disabled={!filters.ward}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Facility" />
                     </SelectTrigger>
                     <SelectContent>
-                      {facilities.map((facility, index) => (
+                      {filteredFacilities.map((facility, index) => (
                         <SelectItem key={index} value={facility.name}>
                           {facility.name}
                         </SelectItem>
@@ -782,12 +888,16 @@ export const Reports = () => {
                 </div>
                 <div>
                   <Label>Community Unit</Label>
-                  <Select value={filters.communityUnit} onValueChange={(value) => setFilters({ ...filters, communityUnit: value })}>
+                  <Select
+                    value={filters.communityUnit}
+                    onValueChange={(value) => setFilters({ ...filters, communityUnit: value })}
+                    disabled={!filters.facility}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Community Unit" />
                     </SelectTrigger>
                     <SelectContent>
-                      {communityUnits.map((unit) => (
+                      {filteredCommunityUnits.map((unit) => (
                         <SelectItem key={unit.id} value={unit.id.toString()}>
                           {unit.communityUnitName}
                         </SelectItem>
@@ -798,7 +908,7 @@ export const Reports = () => {
               </>
             )}
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
             <Button onClick={applyFilters} className="bg-primary hover:bg-primary/90">
               <Filter className="w-4 h-4 mr-2" />
@@ -807,10 +917,10 @@ export const Reports = () => {
             <Button onClick={resetFilters} variant="outline">
               Reset Filters
             </Button>
-            <Button 
-              onClick={toggleFilters} 
+            <Button
+              onClick={toggleFilters}
               variant="ghost"
-              className="sm:hidden flex items-center" 
+              className="sm:hidden flex items-center"
               size="sm"
             >
               {isFiltersExpanded ? 'Less Filters' : 'More Filters'}
@@ -929,7 +1039,7 @@ export const Reports = () => {
                     <h3 className="font-bold text-lg">{item.communityUnit}</h3>
                     <p className="text-sm text-gray-500">{item.facility}</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium">County:</span> {item.county}

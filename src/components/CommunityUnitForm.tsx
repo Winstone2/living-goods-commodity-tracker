@@ -135,7 +135,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       // Get IDs from the selected names
       const county = dropdowns?.counties.find(c => c.name === formData.county);
@@ -181,12 +181,12 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Store the community unit ID in localStorage
         const communityUnitId = result.data.id;
         localStorage.setItem(STORAGE_KEYS.COMMUNITY_UNIT_ID, String(communityUnitId));
-        
+
         console.log('Stored Community Unit ID:', {
           id: communityUnitId,
           timestamp: new Date().toISOString()
@@ -196,7 +196,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
           title: "Success",
           description: "Community unit created successfully"
         });
-        
+
         onSubmit(formData);
         return communityUnitId;
       } else {
@@ -328,29 +328,33 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
               <Input
                 id="totalCHPs"
                 type="number"
-                min="1"
-                placeholder="0"
-                value={formData.totalCHPs === 0 ? '' : formData.totalCHPs}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  totalCHPs: e.target.value === '' ? 0 : parseInt(e.target.value)
-                })}
-                required
+                min="0"
+                value={formData.totalCHPs === null ? '' : formData.totalCHPs}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    totalCHPs: val === '' ? null : parseInt(val),
+                  });
+                }}
               />
             </div>
+
             <div>
               <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
               <Input
                 id="totalCHPsCounted"
                 type="number"
                 min="0"
-                placeholder="0"
-                value={formData.totalCHPsCounted === 0 ? '' : formData.totalCHPsCounted}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  totalCHPsCounted: e.target.value === '' ? 0 : parseInt(e.target.value)
-                })}
-                required
+                // placeholder="0"
+                value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({
+                    ...formData,
+                    totalCHPsCounted: val === '' ? null : parseInt(val)
+                  });
+                }}
               />
             </div>
           </div>

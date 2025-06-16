@@ -26,6 +26,7 @@ export interface CommunityUnit {
   wardId: number;
   linkFacilityId: number;
   createdById: number | null;
+  stockLevel: number | null; // Add this field for stock level
   createdAt: string;
 }
 
