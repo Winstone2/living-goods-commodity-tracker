@@ -14,4 +14,5 @@ export interface CommunityUnitResponse {
     createdAt: string;
   };
   timestamp: string;
+  totalCHPsCounted:number
 }

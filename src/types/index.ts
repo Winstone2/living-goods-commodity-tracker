@@ -12,7 +12,7 @@ export interface User {
 }
 
 export interface CommunityUnit {
-  id: string;
+  id: number;
   county: string;
   subCounty: string;
   ward: string;
@@ -20,8 +20,13 @@ export interface CommunityUnit {
   communityUnitName: string;
   chaName: string;
   totalCHPs: number;
-  createdAt: Date;
-  userId: string;
+  totalCHPsCounted: number; // Add this field
+  countyId: number;
+  subCountyId: number;
+  wardId: number;
+  linkFacilityId: number;
+  createdById: number | null;
+  createdAt: string;
 }
 
 export interface Commodity {

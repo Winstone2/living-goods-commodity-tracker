@@ -4,8 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { CommodityRecord, CommodityRecordPartial } from '@/types/commodity-record';import { Commodity } from '@/types/commodity';
+import { CommodityRecord, CommodityRecordPartial } from '@/types/commodity-record';
+import { Commodity } from '@/types/commodity';
 import { API_CONFIG } from '@/api/config/api.config';
+import { User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const STORAGE_KEYS = {
   COMMUNITY_UNIT_ID: 'livingGoods_communityUnitId',
@@ -24,6 +27,11 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
   onSubmit
 }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate('/community-units');
+  };
   
   // Get and validate community unit ID from localStorage or props
   const communityUnitId = useMemo(() => {
@@ -99,7 +107,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     };
 
     fetchCommodities();
-  }, []);
+  }, [toast]);
 
   // Modified initialization effect with debugging
   useEffect(() => {
@@ -145,7 +153,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
 
       const record = updated[commodityId];
 
-      // Calculate closing balance with updated formula
+      // Calculate closing balance
       if (field !== 'closingBalance') {
         const closingBalance = 
           (record.stockOnHand || 0) + 
@@ -153,20 +161,36 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           ((record.quantityConsumed || 0) + 
            (record.quantityExpired || 0) + 
            (record.quantityDamaged || 0) + 
-           (record.excessQuantityReturned || 0)); // Added excess quantity returned
+           (record.excessQuantityReturned || 0));
         
-        updated[commodityId].closingBalance = Math.max(closingBalance, 0); // Ensure it's not negative
+        updated[commodityId].closingBalance = Math.max(closingBalance, 0);
       }
 
-      // Calculate quantity to order (keep existing calculation)
-      const monthsInStock = 1.5;
-      const averageMonthlyConsumption = (record.quantityConsumed || 0);
+      // Calculate consumption period in days
+      if (record.lastRestockDate && record.stockOutDate) {
+        const restockDate = new Date(record.lastRestockDate);
+        const stockOutDate = new Date(record.stockOutDate);
+        const diffTime = Math.abs(stockOutDate.getTime() - restockDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        updated[commodityId].consumptionPeriod = diffDays;
+      } else {
+        updated[commodityId].consumptionPeriod = 0;
+      }
+
+      // Calculate quantity to order
+      const monthsInStock = 1.5; // 1 month + 2 weeks buffer
+      const averageMonthlyConsumption = record.quantityConsumed || 0;
       const quantityToOrder = Math.max(
         Math.ceil((averageMonthlyConsumption * monthsInStock) - (updated[commodityId].closingBalance || 0)),
         0
       );
       
       updated[commodityId].quantityToOrder = quantityToOrder;
+
+      // Ensure earliest expiry date is set
+      if (!record.earliestExpiryDate) {
+        updated[commodityId].earliestExpiryDate = new Date().toISOString();
+      }
 
       return updated;
     });
@@ -208,25 +232,58 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         throw new Error('Valid Community Unit ID is required');
       }
 
-      const records = Object.values(commodityRecords).map(record => ({
-        // Match exact API format
-        communityUnitId: Number(communityUnitId),
-        commodityId: Number(record.commodityId),
-        quantityExpired: Number(record.quantityExpired) || 0,
-        quantityDamaged: Number(record.quantityDamaged) || 0,
-        stockOnHand: Number(record.stockOnHand) || 0,
-        quantityIssued: Number(record.quantityIssued) || 0,
-        excessQuantityReturned: Number(record.excessQuantityReturned) || 0,
-        quantityConsumed: Number(record.quantityConsumed) || 0,
-        closingBalance: Number(record.closingBalance) || 0,
-        consumptionPeriod: 1, // Fixed value as per API
-        earliestExpiryDate: record.earliestExpiryDate 
-          ? new Date(record.earliestExpiryDate).toISOString()
-          : new Date().toISOString(), // Provide current date if not set
-        quantityToOrder: Number(record.quantityToOrder) || 0
-      }));
+      const records = Object.values(commodityRecords).map(record => {
+        // Calculate the quantity to order
+        const monthsInStock = 1.5;
+        const averageMonthlyConsumption = Number(record.quantityConsumed) || 0;
+        const quantityToOrder = Math.max(
+          Math.ceil((averageMonthlyConsumption * monthsInStock) - (Number(record.closingBalance) || 0)),
+          0
+        );
 
-      // Submit each record
+        // Format the expiry date - ensure it's an ISO string with time
+        const expiryDate = record.earliestExpiryDate 
+          ? new Date(record.earliestExpiryDate).toISOString()
+          : new Date().toISOString();
+          
+        const stockOutDate = record.stockOutDate 
+          ? new Date(record.stockOutDate).toISOString()
+          : null;
+
+        // Get user from localStorage
+        const savedUser = localStorage.getItem('user');
+        if (!savedUser) {
+          throw new Error('User not found. Please login again.');
+        }
+
+        const user = JSON.parse(savedUser);
+        if (!user.id) {
+          throw new Error('Invalid user data');
+        }
+
+        // Return exact API format
+        return {
+          communityUnitId: Number(communityUnitId),
+          commodityId: Number(record.commodityId),
+          quantityExpired: Number(record.quantityExpired) || 0,
+          quantityDamaged: Number(record.quantityDamaged) || 0,
+          stockOnHand: Number(record.stockOnHand) || 0,
+          quantityIssued: Number(record.quantityIssued) || 0,
+          excessQuantityReturned: Number(record.excessQuantityReturned) || 0,
+          quantityConsumed: Number(record.quantityConsumed) || 0,
+          closingBalance: Number(record.closingBalance) || 0,
+          consumptionPeriod: Number(record.consumptionPeriod) || 1,
+          earliestExpiryDate: expiryDate,
+          quantityToOrder: quantityToOrder,
+          stockOutDate: stockOutDate,
+          lastRestockDate: record.lastRestockDate,
+          createdBy: Number(user.id) // Add user ID from localStorage
+        };
+      });
+
+      // Log the exact request body for verification
+      console.log('Submitting Records:', JSON.stringify(records, null, 2));
+
       const promises = records.map(async (recordData) => {
         const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
           method: 'POST',
@@ -234,7 +291,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
             'Content-Type': 'application/json',
             'Accept': '*/*'
           },
-          body: JSON.stringify(recordData) // Send exact format
+          body: JSON.stringify(recordData)
         });
 
         if (!response.ok) {
@@ -291,8 +348,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-expired`}
                       type="number"
                       min="0"
-                      value={record.quantityExpired || ''}
-                      onChange={(e) => updateRecord(commodityId, 'quantityExpired', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      value={record.quantityExpired === 0 ? '' : record.quantityExpired}
+                      onChange={(e) => updateRecord(commodityId, 'quantityExpired', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
                   </div>
@@ -303,8 +361,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-damaged`}
                       type="number"
                       min="0"
-                      value={record.quantityDamaged || ''}
-                      onChange={(e) => updateRecord(commodityId, 'quantityDamaged', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      value={record.quantityDamaged === 0 ? '' : record.quantityDamaged}
+                      onChange={(e) => updateRecord(commodityId, 'quantityDamaged', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
                   </div>
@@ -315,8 +374,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-stockOnHand`}
                       type="number"
                       min="0"
-                      value={record.stockOnHand || ''}
-                      onChange={(e) => updateRecord(commodityId, 'stockOnHand', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      value={record.stockOnHand === 0 ? '' : record.stockOnHand}
+                      onChange={(e) => updateRecord(commodityId, 'stockOnHand', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
                   </div>
@@ -327,8 +387,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-issued`}
                       type="number"
                       min="0"
-                      value={record.quantityIssued || ''}
-                      onChange={(e) => updateRecord(commodityId, 'quantityIssued', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      value={record.quantityIssued === 0 ? '' : record.quantityIssued}
+                      onChange={(e) => updateRecord(commodityId, 'quantityIssued', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
                   </div>
@@ -339,8 +400,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-returned`}
                       type="number"
                       min="0"
-                      value={record.excessQuantityReturned || ''}
-                      onChange={(e) => updateRecord(commodityId, 'excessQuantityReturned', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      value={record.excessQuantityReturned === 0 ? '' : record.excessQuantityReturned}
+                      onChange={(e) => updateRecord(commodityId, 'excessQuantityReturned', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
                   </div>
@@ -351,8 +413,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       id={`${commodityId}-consumed`}
                       type="number"
                       min="0"
-                      value={record.quantityConsumed || ''}
-                      onChange={(e) => updateRecord(commodityId, 'quantityConsumed', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      value={record.quantityConsumed === 0 ? '' : record.quantityConsumed}
+                      onChange={(e) => updateRecord(commodityId, 'quantityConsumed', e.target.value === '' ? 0 : parseInt(e.target.value))}
                       required
                     />
                   </div>
@@ -428,7 +491,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
             );
           })}
           
-          <Button type="submit" className="w-full" size="lg">
+          <Button onClick={handleClick} className="w-full" size="lg">
             Save Commodity Records
           </Button>
         </form>

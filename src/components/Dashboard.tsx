@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/api/config/api.config';
 import type { DashboardStats } from '@/types/dashboard';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
+// import CommunityUnits from '@/pages/CommunityUnits';
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -174,7 +175,7 @@ export const Dashboard = () => {
               <span className="block font-medium">Add New Record</span>
             </button>
             <button 
-              onClick={() => navigate('/inventory')}
+              onClick={() => navigate('/community-units')}
               className="p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Users className="w-6 h-6 mx-auto mb-2" />

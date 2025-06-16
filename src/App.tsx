@@ -14,6 +14,7 @@ import { UserManagement } from "@/pages/UserManagement";
 import { Settings } from "@/pages/Settings";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import CommunityUnits from "./pages/CommunityUnits";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,11 @@ const AppRoutes = () => {
           <AdminRoute>
             <Settings />
           </AdminRoute>
+        </ProtectedRoute>
+      } />
+      <Route path="/community-units" element={
+        <ProtectedRoute>
+          <CommunityUnits />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

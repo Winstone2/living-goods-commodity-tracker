@@ -32,6 +32,7 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from "jspdf";
 import 'jspdf-autotable';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Create a helper function for common headers
 const getDefaultHeaders = () => ({
@@ -40,7 +41,7 @@ const getDefaultHeaders = () => ({
   'Authorization': AUTH_HEADER
 });
 
-// Add these interfaces at the top
+// First, ensure the County interface matches the API response
 interface County {
   id: number;
   name: string;
@@ -67,7 +68,7 @@ interface CommunityUnit {
   subCountyId: number;
   wardId: number;
   linkFacilityId: number;
-  createdById: number | null;
+  // createdById: number | null;
   createdAt: string;
 }
 
@@ -89,7 +90,7 @@ interface RecordData {
   stockOutDate: string | null;
   consumptionPeriod: number;
   recordDate: string;
-  createdByUsername: string | null;
+  // createdByUsername: string | null;
   countyName: string | null;
   subCountyName: string | null;
   wardName: string | null;
@@ -123,7 +124,7 @@ interface ProcessedReportData {
   totalConsumption: number;
   commoditiesOutOfStock: string[];
   lastUpdate: string;
-  createdBy: string | null;
+  // createdBy: string | null;
 }
 
 // Add this function before the Reports component
@@ -327,7 +328,7 @@ export const Reports = () => {
   // Add this function before the return statement
   const getFilteredReportData = () => {
     return reportData.filter(item => {
-      // Filter by month and year if they're selected
+      // Filter by month and year
       if (filters.month || filters.year) {
         const recordDate = new Date(item.lastUpdate);
         const selectedMonth = parseInt(filters.month);
@@ -337,12 +338,12 @@ export const Reports = () => {
         if (filters.year && recordDate.getFullYear() !== selectedYear) return false;
       }
 
-      // Filter by county - fix the comparison
-      if (filters.county && item.county) {
+      // Updated county filter check with proper comparison
+      if (filters.county && filters.county !== 'all') {
         const selectedCounty = counties.find(c => c.id.toString() === filters.county);
-        if (!selectedCounty || item.county !== selectedCounty.name) {
-          return false;
-        }
+        if (!selectedCounty) return false;
+        // Compare county names directly since that's what we have in the report data
+        if (item.county.toLowerCase() !== selectedCounty.name.toLowerCase()) return false;
       }
 
       // Filter by sub-county
@@ -539,6 +540,15 @@ export const Reports = () => {
     setFilteredCount(reportData.length);
   }, [reportData]);
 
+  // Add this useEffect to check counties loading
+  useEffect(() => {
+    if (counties.length === 0) {
+      console.warn('Counties not loaded');
+    } else {
+      console.log('Counties loaded:', counties);
+    }
+  }, [counties]);
+
   const processReportData = (records: RecordData[]): ProcessedReportData[] => {
     const groupedByCU = records.reduce((acc, record) => {
       if (!acc[record.communityUnitId]) {
@@ -677,13 +687,30 @@ export const Reports = () => {
             </div>
             <div>
               <Label>County</Label>
-              <Select value={filters.county} onValueChange={(value) => setFilters({ ...filters, county: value })}>
+              <Select 
+                value={filters.county} 
+                onValueChange={(value) => {
+                  console.log('Selected county:', value);
+                  setFilters({ 
+                    ...filters, 
+                    county: value,
+                    subCounty: '',
+                    ward: '',
+                    facility: '',
+                    communityUnit: ''
+                  })
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select County" />
                 </SelectTrigger>
                 <SelectContent>
-                  {counties.map((county) => (
-                    <SelectItem key={county.id} value={county.id.toString()}>
+                  <SelectItem value="all">All Counties</SelectItem>
+                  {counties && counties.length > 0 && counties.map((county) => (
+                    <SelectItem 
+                      key={county.id} 
+                      value={county.id.toString()}
+                    >
                       {county.name}
                     </SelectItem>
                   ))}
@@ -701,7 +728,15 @@ export const Reports = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {subCounties
-                    .filter(sc => !filters.county || sc.county_id.toString() === filters.county)
+                    .filter(sc => {
+                      // Add null checks and logging
+                      if (!filters.county) return true;
+                      if (!sc || !sc.county_id) {
+                        console.warn('Invalid subcounty data:', sc);
+                        return false;
+                      }
+                      return sc.county_id.toString() === filters.county;
+                    })
                     .map((subCounty) => (
                       <SelectItem 
                         key={subCounty.id} 
@@ -947,3 +982,8 @@ export const Reports = () => {
     </div>
   );
 };
+
+// In your parent component or route
+<ErrorBoundary>
+  <Reports />
+</ErrorBoundary>

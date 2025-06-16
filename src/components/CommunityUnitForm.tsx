@@ -39,6 +39,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     communityUnitName: initialData?.communityUnitName || '',
     chaName: initialData?.chaName || '',
     totalCHPs: initialData?.totalCHPs || 0,
+    totalCHPsCounted: initialData?.totalCHPsCounted || 0 // Add default value
   });
 
   useEffect(() => {
@@ -155,6 +156,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         chaName: formData.chaName,
         communityUnitName: formData.communityUnitName,
         totalChps: Number(formData.totalCHPs),
+        totalCHPsCounted: Number(formData.totalCHPsCounted), // Add this line
         countyId: county.id,
         subCountyId: subCounty.id,
         wardId: ward.id,
@@ -326,10 +328,28 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
               <Input
                 id="totalCHPs"
                 type="number"
-                value={formData.totalCHPs}
-                onChange={(e) => setFormData({ ...formData, totalCHPs: parseInt(e.target.value) || 0 })}
-                placeholder="Enter total CHPs"
                 min="1"
+                placeholder="0"
+                value={formData.totalCHPs === 0 ? '' : formData.totalCHPs}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  totalCHPs: e.target.value === '' ? 0 : parseInt(e.target.value)
+                })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="totalCHPsCounted">CHPs Counted *</Label>
+              <Input
+                id="totalCHPsCounted"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={formData.totalCHPsCounted === 0 ? '' : formData.totalCHPsCounted}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  totalCHPsCounted: e.target.value === '' ? 0 : parseInt(e.target.value)
+                })}
                 required
               />
             </div>
