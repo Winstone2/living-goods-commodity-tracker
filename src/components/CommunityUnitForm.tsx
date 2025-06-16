@@ -339,7 +339,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
               />
             </div>
             <div>
-              <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted</Label>
+              <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
               <Input
                 id="totalCHPsCounted"
                 type="number"
