@@ -148,7 +148,7 @@ const CommunityUnits: React.FC = () => {
                   <th className="text-left py-4 px-6 font-semibold text-gray-900">Community Unit</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-900">CHA Name</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-900">Total CHPs</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">CHPs Counted</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-900">CHPs whose Commodities were Counted</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-900">Location</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-900">Created</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-900">Actions</th>
