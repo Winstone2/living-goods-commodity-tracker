@@ -79,11 +79,10 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     window.location.href = '/community-units';
 
   } catch (error) {
-        window.location.href = '/community-units';
-
-    // console.error('Error submitting records:', error.message);
-    // alert('An error occurred while submitting. Please try again.');
+     
   }
+      window.location.href = '/community-units';
+
 };
 
 
