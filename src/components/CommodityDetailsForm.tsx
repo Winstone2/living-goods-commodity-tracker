@@ -29,40 +29,58 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleClick = async () => {
-    try {
-      const promises = records.map(async (recordData) => {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': '*/*'
-          },
-          body: JSON.stringify(recordData)
-        });
+ const handleClick = async () => {
+  try {
+    // Validate required fields
+    for (const record of records) {
+      const requiredFields = [
+        'lastRestockDate',
+        'stockOutDate'
+      ];
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to save record');
+      for (const field of requiredFields) {
+        if (
+          record[field] === undefined ||
+          record[field] === null ||
+          record[field] === ''
+        ) {
+          alert(`Please fill all required fields before submitting. Missing: ${field}`);
+          return;
         }
-
-        return response.json();
-      });
-      window.location.href = '/community-units';
-
-
-      await Promise.all(promises);
-      // Navigate only after successful submission
-      // navigate('/community-units');
-      window.location.href = '/community-units';
-
-    } catch (error) {
-      console.error('Error submitting records:', error.message);
-      // Optional: show error message to user
+      }
     }
+
+    // Submit records
+    const promises = records.map(async (recordData) => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': '*/*'
+        },
+        body: JSON.stringify(recordData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save record');
+      }
+
+      return response.json();
+    });
     window.location.href = '/community-units';
 
-  };
+
+    await Promise.all(promises);
+
+    window.location.href = '/community-units';
+
+  } catch (error) {
+    // console.error('Error submitting records:', error.message);
+    // alert('An error occurred while submitting. Please try again.');
+  }
+};
+
 
 
   // Get and validate community unit ID from localStorage or props
@@ -574,91 +592,84 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
 
                     />
                   </div> */}
-                {/* Last Restock Date */}
-<div>
-  <Label htmlFor={`${commodityId}-restock`}>Last Restock Date *</Label>
-  <Input
-    id={`${commodityId}-restock`}
-    type="date"
-    required
-    value={
-      record.lastRestockDate
-        ? new Date(record.lastRestockDate).toISOString().split('T')[0]
-        : ''
-    }
-    onChange={(e) => {
-      const lastRestock = e.target.value ? new Date(e.target.value) : null;
-      const stockOut = record.stockOutDate ? new Date(record.stockOutDate) : null;
+                  {/* Last Restock Date */}
+                  <div>
+                    <Label htmlFor={`${commodityId}-restock`}>Last Restock Date *</Label>
+                    <Input
+                      id={`${commodityId}-restock`}
+                      type="date"
+                      required
+                      value={
+                        record.lastRestockDate
+                          ? new Date(record.lastRestockDate).toISOString().split('T')[0]
+                          : ''
+                      }
+                      onChange={(e) => {
+                        const lastRestock = e.target.value ? new Date(e.target.value) : null;
+                        const stockOut = record.stockOutDate ? new Date(record.stockOutDate) : null;
 
-      const period =
-        lastRestock && stockOut
-          ? Math.max(
-              0,
-              Math.ceil((stockOut - lastRestock) / (1000 * 60 * 60 * 24))
-            )
-          : null;
+                        const period =
+                          lastRestock && stockOut
+                            ? Math.max(
+                              0,
+                              Math.ceil((stockOut - lastRestock) / (1000 * 60 * 60 * 24))
+                            )
+                            : null;
 
-      updateRecord(commodityId, 'lastRestockDate', lastRestock);
-      if (period !== null) {
-        updateRecord(commodityId, 'consumptionPeriod', period);
-      }
-    }}
-    min="2020-01-01"
-  />
-</div>
+                        updateRecord(commodityId, 'lastRestockDate', lastRestock);
+                        if (period !== null) {
+                          updateRecord(commodityId, 'consumptionPeriod', period);
+                        }
+                      }}
+                      min="2020-01-01"
+                    />
+                  </div>
 
-{/* Stock-out Date */}
-<div>
-  <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date *</Label>
-  <Input
-    id={`${commodityId}-stockout`}
-    type="date"
-    required
-    value={
-      record.stockOutDate
-        ? new Date(record.stockOutDate).toISOString().split('T')[0]
-        : ''
-    }
-    onChange={(e) => {
-      const stockOut = e.target.value ? new Date(e.target.value) : null;
-      const lastRestock = record.lastRestockDate ? new Date(record.lastRestockDate) : null;
+                  {/* Stock-out Date */}
+                  <div>
+                    <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date *</Label>
+                    <Input
+                      id={`${commodityId}-stockout`}
+                      type="date"
+                      required
+                      value={
+                        record.stockOutDate
+                          ? new Date(record.stockOutDate).toISOString().split('T')[0]
+                          : ''
+                      }
+                      onChange={(e) => {
+                        const stockOut = e.target.value ? new Date(e.target.value) : null;
+                        const lastRestock = record.lastRestockDate ? new Date(record.lastRestockDate) : null;
 
-      const period =
-        lastRestock && stockOut
-          ? Math.max(
-              0,
-              Math.ceil((stockOut - lastRestock) / (1000 * 60 * 60 * 24))
-            )
-          : null;
-
-      updateRecord(commodityId, 'stockOutDate', stockOut);
-      if (period !== null) {
-        updateRecord(commodityId, 'consumptionPeriod', period);
-      }
-    }}
-    min="2020-01-01"
-  />
-</div>
-<div>
-  <Label htmlFor={`${commodityId}-period`}>Consumption Period (Days)</Label>
-  <Input
-    id={`${commodityId}-period`}
-    type="number"
-    readOnly
-    value={record.consumptionPeriod ?? ''}
-    className="bg-gray-100"
-  />
-</div>
-
-
-
-
+                        const period =
+                          lastRestock && stockOut
+                            ? Math.max(
+                              0,
+                              Math.ceil((stockOut - lastRestock) / (1000 * 60 * 60 * 24))
+                            )
+                            : null;
+                        updateRecord(commodityId, 'stockOutDate', stockOut);
+                        if (period !== null) {
+                          updateRecord(commodityId, 'consumptionPeriod', period);
+                        }
+                      }}
+                      min="2020-01-01"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`${commodityId}-period`}>Consumption Period (Days)</Label>
+                    <Input
+                      id={`${commodityId}-period`}
+                      type="number"
+                      readOnly
+                      value={record.consumptionPeriod ?? ''}
+                      className="bg-gray-100"
+                    />
+                  </div>
                 </div>
-
               </div>
             );
           })}
-
           <Button onClick={handleClick} className="w-full" size="lg">
             Save Commodity Records
           </Button>
