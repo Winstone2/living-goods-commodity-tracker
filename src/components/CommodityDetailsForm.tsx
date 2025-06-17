@@ -449,7 +449,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       required
                     />
                   </div>
-                  <div>
+                  {/* <div>
                     <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date</Label>
                     <Input
                       id={`${commodityId}-stockout`}
@@ -468,7 +468,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       }
                       min={new Date().toISOString().split('T')[0]} // optional: prevent selecting past dates
                     />
-                  </div>
+                  </div> */}
 
 
                   <div>
@@ -552,11 +552,12 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       min={new Date().toISOString().split('T')[0]} // Cannot be earlier than today
                     />
                   </div>
-                  <div>
-                    <Label htmlFor={`${commodityId}-restock`}>Last Restock Date</Label>
+                  {/* <div>
+                    <Label htmlFor={`${commodityId}-restock`}>Last Restock Date *</Label>
                     <Input
                       id={`${commodityId}-restock`}
                       type="date"
+                      required
                       value={
                         record.lastRestockDate
                           ? new Date(record.lastRestockDate).toISOString().split('T')[0]
@@ -569,9 +570,88 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                           e.target.value ? new Date(e.target.value) : null
                         )
                       }
-                      min="2020-01-01" // optional: allow older restocks
+                      min="2020-01-01"
+
                     />
-                  </div>
+                  </div> */}
+                {/* Last Restock Date */}
+<div>
+  <Label htmlFor={`${commodityId}-restock`}>Last Restock Date *</Label>
+  <Input
+    id={`${commodityId}-restock`}
+    type="date"
+    required
+    value={
+      record.lastRestockDate
+        ? new Date(record.lastRestockDate).toISOString().split('T')[0]
+        : ''
+    }
+    onChange={(e) => {
+      const lastRestock = e.target.value ? new Date(e.target.value) : null;
+      const stockOut = record.stockOutDate ? new Date(record.stockOutDate) : null;
+
+      const period =
+        lastRestock && stockOut
+          ? Math.max(
+              0,
+              Math.ceil((stockOut - lastRestock) / (1000 * 60 * 60 * 24))
+            )
+          : null;
+
+      updateRecord(commodityId, 'lastRestockDate', lastRestock);
+      if (period !== null) {
+        updateRecord(commodityId, 'consumptionPeriod', period);
+      }
+    }}
+    min="2020-01-01"
+  />
+</div>
+
+{/* Stock-out Date */}
+<div>
+  <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date *</Label>
+  <Input
+    id={`${commodityId}-stockout`}
+    type="date"
+    required
+    value={
+      record.stockOutDate
+        ? new Date(record.stockOutDate).toISOString().split('T')[0]
+        : ''
+    }
+    onChange={(e) => {
+      const stockOut = e.target.value ? new Date(e.target.value) : null;
+      const lastRestock = record.lastRestockDate ? new Date(record.lastRestockDate) : null;
+
+      const period =
+        lastRestock && stockOut
+          ? Math.max(
+              0,
+              Math.ceil((stockOut - lastRestock) / (1000 * 60 * 60 * 24))
+            )
+          : null;
+
+      updateRecord(commodityId, 'stockOutDate', stockOut);
+      if (period !== null) {
+        updateRecord(commodityId, 'consumptionPeriod', period);
+      }
+    }}
+    min="2020-01-01"
+  />
+</div>
+<div>
+  <Label htmlFor={`${commodityId}-period`}>Consumption Period (Days)</Label>
+  <Input
+    id={`${commodityId}-period`}
+    type="number"
+    readOnly
+    value={record.consumptionPeriod ?? ''}
+    className="bg-gray-100"
+  />
+</div>
+
+
+
 
                 </div>
 
