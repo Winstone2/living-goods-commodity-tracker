@@ -35,7 +35,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     for (const record of records) {
       const requiredFields = [
         'lastRestockDate',
-        'stockOutDate'
+        'earliestExpiryDate'
       ];
 
       for (const field of requiredFields) {
@@ -551,7 +551,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor={`${commodityId}-expiry`}>Earliest Expiry Date</Label>
+                    <Label htmlFor={`${commodityId}-expiry`}>Earliest Expiry Date *</Label>
                     <Input
                       id={`${commodityId}-expiry`}
                       type="date"
@@ -627,7 +627,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
 
                   {/* Stock-out Date */}
                   <div>
-                    <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date *</Label>
+                    <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date </Label>
                     <Input
                       id={`${commodityId}-stockout`}
                       type="date"
