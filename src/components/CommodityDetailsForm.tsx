@@ -467,28 +467,6 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       required
                     />
                   </div>
-                  {/* <div>
-                    <Label htmlFor={`${commodityId}-stockout`}>Stock-out Date</Label>
-                    <Input
-                      id={`${commodityId}-stockout`}
-                      type="date"
-                      value={
-                        record.stockOutDate
-                          ? new Date(record.stockOutDate).toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={(e) =>
-                        updateRecord(
-                          commodityId,
-                          'stockOutDate',
-                          e.target.value ? new Date(e.target.value) : null
-                        )
-                      }
-                      min={new Date().toISOString().split('T')[0]} // optional: prevent selecting past dates
-                    />
-                  </div> */}
-
-
                   <div>
                     <Label htmlFor={`${commodityId}-returned`}>Excess Qty Returned *</Label>
                     <Input
@@ -631,7 +609,6 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                     <Input
                       id={`${commodityId}-stockout`}
                       type="date"
-                      required
                       value={
                         record.stockOutDate
                           ? new Date(record.stockOutDate).toISOString().split('T')[0]
