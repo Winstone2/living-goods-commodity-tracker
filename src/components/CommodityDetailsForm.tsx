@@ -60,11 +60,14 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         },
         body: JSON.stringify(recordData)
       });
+    window.location.href = '/community-units';
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save record');
       }
+      window.location.href = '/community-units';
+
 
       return response.json();
     });
@@ -76,6 +79,8 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     window.location.href = '/community-units';
 
   } catch (error) {
+        window.location.href = '/community-units';
+
     // console.error('Error submitting records:', error.message);
     // alert('An error occurred while submitting. Please try again.');
   }
@@ -533,6 +538,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                     <Input
                       id={`${commodityId}-expiry`}
                       type="date"
+                      required
                       value={
                         record.earliestExpiryDate
                           ? new Date(record.earliestExpiryDate).toISOString().split('T')[0]
