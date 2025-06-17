@@ -120,6 +120,10 @@ interface ProcessedReportData {
     stockOut: string | null;
     consumptionPeriod: number;
     closingBalance: number;
+    quantityToOrder: number;
+    lastRestockDate: string | null;
+    stockOutDate: string | null;
+    earliestExpiryDate: string | null;
   }>;
   totalConsumption: number;
   commoditiesOutOfStock: string[];
@@ -204,22 +208,48 @@ export const Reports = () => {
       // For each commodity in the community unit, create a separate row
       item.commodities.forEach(commodity => {
         exportRows.push({
-          'Community Unit': item.communityUnit,
+          // 'Community Unit': item.communityUnit,
+          // 'County': item.county,
+          // 'Sub-County': item.subCounty,
+          // 'Ward': item.ward,
+          // 'Facility': item.facility,
+          // 'Commodity': commodity.name,
+          // 'Stock On Hand': commodity.stockOnHand,
+          // 'Consumed': commodity.consumed,
+          // 'Issued': commodity.issued,
+          // 'Damaged': commodity.damaged,
+          // 'Returned': commodity.returned,
+          // 'Closing Balance': commodity.closing,
+          // 'Last Restock Date': commodity.lastRestock ? new Date(commodity.lastRestock).toLocaleDateString() : 'N/A',
+          // 'Stock Out Date': commodity.stockOut ? new Date(commodity.stockOut).toLocaleDateString() : 'N/A',
+          // 'Stock Status': commodity.stockOnHand === 0 ? 'Out of Stock' : 'In Stock',
+          // 'Last Update': item.lastUpdate,
+          // 'quantity To Order': commodity.quantityToOrder,
+          // 'lastRestockDate': commodity.lastRestockDate,
+          // 'stockOutDate': commodity.stockOutDate,
+          // 'consumptionPeriod': commodity.consumptionPeriod,
+          // 'earliestExpiryDate': commodity.earliestExpiryDate,
+
           'County': item.county,
           'Sub-County': item.subCounty,
           'Ward': item.ward,
           'Facility': item.facility,
+          'Community Unit': item.communityUnit,
           'Commodity': commodity.name,
-          'Stock On Hand': commodity.stockOnHand,
-          'Consumed': commodity.consumed,
-          'Issued': commodity.issued,
-          'Damaged': commodity.damaged,
-          'Returned': commodity.returned,
+          'Stock on Hand': commodity.stockOnHand,
+          'Quantity Issued': commodity.issued,
+          'Quantity Consumed': commodity.consumed,
+          'Quantity Expired': commodity.expired || 'N/A', // Added missing field
+          'Quantity Damaged': commodity.damaged,
+          'Excess Qty Returned': commodity.returned,
           'Closing Balance': commodity.closing,
+          'Quantity to Order': commodity.quantityToOrder,
           'Last Restock Date': commodity.lastRestock ? new Date(commodity.lastRestock).toLocaleDateString() : 'N/A',
-          'Stock Out Date': commodity.stockOut ? new Date(commodity.stockOut).toLocaleDateString() : 'N/A',
-          'Stock Status': commodity.stockOnHand === 0 ? 'Out of Stock' : 'In Stock',
-          'Last Update': item.lastUpdate
+          'Stock-out Date': commodity.stockOutDate ? new Date(commodity.stockOutDate).toLocaleDateString() : 'N/A',
+          'Consumption Period (Days)': commodity.consumptionPeriod,
+          'Earliest Expiry Date': commodity.earliestExpiryDate
+
+
         });
       });
     });
@@ -509,6 +539,7 @@ export const Reports = () => {
       const result = await response.json();
       if (result.success) {
         const processedData = processReportData(result.data);
+        console.log('what we are getting fromn te record data source', result)
         setReportData(processedData);
         return processedData;
       }
@@ -654,7 +685,7 @@ export const Reports = () => {
           commodities: [],
           totalConsumption: 0,
           commoditiesOutOfStock: [],
-          lastUpdate: record.recordDate
+          lastUpdate: record.recordDate,
         };
       }
 
@@ -668,7 +699,18 @@ export const Reports = () => {
         returned: record.excessQuantityReturned,
         closing: record.closingBalance,
         lastRestock: record.lastRestockDate,
-        stockOut: record.stockOutDate
+        stockOutDate: record.stockOutDate,
+        lastRestockDate: record.lastRestockDate,
+        earliestExpiryDate: record.earliestExpiryDate,
+        quantityToOrder: record.quantityToOrder,
+        lastRestockDate: record.lastRestockDate,
+        consumptionPeriod: record.consumptionPeriod
+
+
+
+
+
+
       });
 
       acc[record.communityUnitId].totalConsumption += record.quantityConsumed;
@@ -723,10 +765,10 @@ export const Reports = () => {
             <FileSpreadsheet className="w-4 h-4 mr-1 sm:mr-2" />
             Excel
           </Button>
-          <Button onClick={() => exportData('pdf')} variant="outline" className="text-xs sm:text-sm" size="sm">
+          {/* <Button onClick={() => exportData('pdf')} variant="outline" className="text-xs sm:text-sm" size="sm">
             <FileImage className="w-4 h-4 mr-1 sm:mr-2" />
             PDF
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -837,30 +879,30 @@ export const Reports = () => {
                 </SelectContent>
               </Select>
             </div>
-           <div>
-  <Label>Ward</Label>
-  <Select 
-    value={filters.ward} 
-    onValueChange={(value) => setFilters({ 
-      ...filters, 
-      ward: value,
-      facility: '', // Reset dependent filters
-      communityUnit: ''
-    })}
-    disabled={!filters.subCounty}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Select Ward" />
-    </SelectTrigger>
-    <SelectContent>
-      {filteredWards.map((ward, index) => (
-        <SelectItem key={index} value={ward.name}>
-          {ward.name}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
+            <div>
+              <Label>Ward</Label>
+              <Select
+                value={filters.ward}
+                onValueChange={(value) => setFilters({
+                  ...filters,
+                  ward: value,
+                  facility: '', // Reset dependent filters
+                  communityUnit: ''
+                })}
+                disabled={!filters.subCounty}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Ward" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredWards.map((ward, index) => (
+                    <SelectItem key={index} value={ward.name}>
+                      {ward.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {isFiltersExpanded && (
               <>
                 <div>

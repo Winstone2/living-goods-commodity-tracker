@@ -52,6 +52,10 @@ export interface CommodityRecord {
   consumptionPeriod?: number;
   recordDate: Date;
   userId: string;
+  earliestExpiryDate:string
+  quantityToOrder:string
+
+  
 }
 
 export interface DashboardStats {
