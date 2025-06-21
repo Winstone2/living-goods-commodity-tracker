@@ -33,6 +33,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       // { icon: Settings, label: 'Settings', path: '/admin/settings' }
     ] : [])
   ];
+  
 
   const handleNavigation = (path: string) => {
     navigate(path);
