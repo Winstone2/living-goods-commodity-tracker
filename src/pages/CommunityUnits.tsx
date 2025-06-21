@@ -12,9 +12,9 @@ interface CommunityUnit {
     chaName: string;
     communityUnitName: string;
     totalChps: number;
-    countyId: number;
+    countyName: string;
     subCountyId: number;
-    wardId: number;
+    wardName: string;
     linkFacilityId: number;
     createdById: number | null;
     createdAt: string;
@@ -196,8 +196,8 @@ const CommunityUnits: React.FC = () => {
                                             <div className="flex items-center space-x-2 text-sm text-gray-600">
                                                 <MapPin className="w-4 h-4" />
                                                 <div>
-                                                    <div>County: {unit.countyId}</div>
-                                                    <div>Ward: {unit.wardId}</div>
+                                                    <div>County: {unit.countyName}</div>
+                                                    <div>Ward: {unit.wardName}</div>
                                                 </div>
                                             </div>
                                         </td>

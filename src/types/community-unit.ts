@@ -6,13 +6,13 @@ export interface CommunityUnitResponse {
     chaName: string;
     communityUnitName: string;
     totalChps: number;
-    countyId: number;
+    countyName: number;
     subCountyId: number;
-    wardId: number;
+    wardName: number;
     linkFacilityId: number;
     createdById: number | null;
     createdAt: string;
-    stockLevel
+    
   };
   timestamp: string;
   totalCHPsCounted:number
