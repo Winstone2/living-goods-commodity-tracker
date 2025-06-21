@@ -323,40 +323,56 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="totalCHPs">Total CHPs *</Label>
-              <Input
-                id="totalCHPs"
-                type="number"
-                min="0"
-                value={formData.totalCHPs === null ? '' : formData.totalCHPs}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFormData({
-                    ...formData,
-                    totalCHPs: val === '' ? null : parseInt(val),
-                  });
-                }}
-              />
-            </div>
+          <div>
+  <Label htmlFor="totalCHPs">Total CHPs *</Label>
+  <Input
+    id="totalCHPs"
+    type="number"
+    min="1" // disallow 0 directly
+    value={formData.totalCHPs === null ? '' : formData.totalCHPs}
+    onChange={(e) => {
+      const val = e.target.value;
+      const parsed = val === '' ? null : parseInt(val);
 
-            <div>
-              <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
-              <Input
-                id="totalCHPsCounted"
-                type="number"
-                min="0"
-                // placeholder="0"
-                value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFormData({
-                    ...formData,
-                    totalCHPsCounted: val === '' ? null : parseInt(val)
-                  });
-                }}
-              />
-            </div>
+      setFormData((prev) => ({
+        ...prev,
+        totalCHPs: parsed,
+      }));
+    }}
+    required
+  />
+</div>
+
+<div>
+  <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
+  <Input
+    id="totalCHPsCounted"
+    type="number"
+    min="1"
+    value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
+    onChange={(e) => {
+      const val = e.target.value;
+      const parsed = val === '' ? null : parseInt(val);
+
+      // prevent value > totalCHPs
+      if (formData.totalCHPs !== null && parsed > formData.totalCHPs) {
+        toast({
+          title: "Invalid Entry",
+          description: "CHPs counted cannot exceed total CHPs.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        totalCHPsCounted: parsed,
+      }));
+    }}
+    required
+  />
+</div>
+
           </div>
           <Button type="submit" className="w-full">
             Save Community Unit Information

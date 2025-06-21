@@ -9,6 +9,8 @@ import { Commodity } from '@/types/commodity';
 import { API_CONFIG } from '@/api/config/api.config';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from "@/components/ui/use-toast";
+
 
 const STORAGE_KEYS = {
   COMMUNITY_UNIT_ID: 'livingGoods_communityUnitId',
@@ -29,61 +31,100 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
 
- const handleClick = async () => {
-  try {
-    // Validate required fields
-    for (const record of records) {
-      const requiredFields = [
-        'lastRestockDate',
-        'earliestExpiryDate'
-      ];
 
-      for (const field of requiredFields) {
-        if (
-          record[field] === undefined ||
-          record[field] === null ||
-          record[field] === ''
-        ) {
-          alert(`Please fill all required fields before submitting. Missing: ${field}`);
-          return;
+
+  const isValidDate = (value) => {
+    return value instanceof Date && !isNaN(value.getTime());
+  };
+
+  const handleClick = async (e) => {
+    e.preventDefault(); // prevent form submission
+
+    try {
+      const records = Object.values(commodityRecords);
+
+      if (records.length === 0) {
+        toast({
+          title: "Missing Records",
+          description: "No commodity records to submit.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let errors = [];
+
+      const fieldLabels = {
+        earliestExpiryDate: "Earliest Expiry Date",
+        lastRestockDate: "Last Restock Date"
+      };
+
+      for (const [index, record] of records.entries()) {
+        const requiredFields = ['earliestExpiryDate', 'lastRestockDate'];
+
+        for (const field of requiredFields) {
+          const value = record[field];
+          const isEmpty = value === undefined || value === null || value === '';
+          const isBadDate = value instanceof Date && isNaN(value.getTime());
+
+          if (isEmpty || isBadDate) {
+            const label = fieldLabels[field] || field;
+            errors.push(` Missing or invalid ${label}`);
+          }
         }
       }
-    }
 
-    // Submit records
-    const promises = records.map(async (recordData) => {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': '*/*'
-        },
-        body: JSON.stringify(recordData)
-      });
-    window.location.href = '/community-units';
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save record');
+      if (errors.length > 0) {
+        toast({
+          title: "Validation Errors",
+          description: errors.join('\n'),
+          variant: "destructive",
+        });
+        return;
       }
-      window.location.href = '/community-units';
 
 
-      return response.json();
-    });
-    window.location.href = '/community-units';
+
+      // If valid, submit
+      const promises = records.map(async (recordData) => {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/records`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*'
+          },
+          body: JSON.stringify(recordData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to save record');
+        }
+
+        return response.json();
+      });
+
+      await Promise.all(promises);
+
+      toast({
+        title: "Success",
+        description: "All records saved successfully. Redirecting...",
+      });
+
+      setTimeout(() => {
+        window.location.href = '/community-units';
+      }, 1500);
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while saving records.",
+        variant: "destructive",
+      });
+    }
+  };
 
 
-    await Promise.all(promises);
-
-    window.location.href = '/community-units';
-
-  } catch (error) {
-     
-  }
-      window.location.href = '/community-units';
-
-};
 
 
 
@@ -217,7 +258,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
             (record.quantityDamaged || 0) +
             (record.excessQuantityReturned || 0));
 
-        updated[commodityId].closingBalance = Math.max(closingBalance, 0);
+        updated[commodityId].closingBalance = closingBalance;
       }
 
       // Calculate consumption period in days
@@ -242,9 +283,9 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
       updated[commodityId].quantityToOrder = quantityToOrder;
 
       // Ensure earliest expiry date is set
-      if (!record.earliestExpiryDate) {
-        updated[commodityId].earliestExpiryDate = new Date().toISOString();
-      }
+      // if (!record.earliestExpiryDate) {
+      //   updated[commodityId].earliestExpiryDate = new Date().toISOString();
+      // }
 
       return updated;
     });
@@ -513,10 +554,15 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                     <Input
                       id={`${commodityId}-closing`}
                       type="number"
-                      value={record.closingBalance ?? 0}
+                      value={
+                        typeof record.closingBalance === 'number'
+                          ? record.closingBalance
+                          : ''
+                      }
                       readOnly
                       className="bg-gray-100"
                     />
+
                   </div>
 
                   <div>
@@ -539,43 +585,26 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                       type="date"
                       required
                       value={
-                        record.earliestExpiryDate
+                        record.earliestExpiryDate && !isNaN(new Date(record.earliestExpiryDate))
                           ? new Date(record.earliestExpiryDate).toISOString().split('T')[0]
                           : ''
                       }
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const val = e.target.value;
                         updateRecord(
                           commodityId,
                           'earliestExpiryDate',
-                          e.target.value ? new Date(e.target.value) : null
-                        )
-                      }
-                      min={new Date().toISOString().split('T')[0]} // Cannot be earlier than today
+                          val ? new Date(val) : null
+                        );
+                      }}
+                      placeholder="Select a date"
+                      min=""
                     />
-                  </div>
-                  {/* <div>
-                    <Label htmlFor={`${commodityId}-restock`}>Last Restock Date *</Label>
-                    <Input
-                      id={`${commodityId}-restock`}
-                      type="date"
-                      required
-                      value={
-                        record.lastRestockDate
-                          ? new Date(record.lastRestockDate).toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={(e) =>
-                        updateRecord(
-                          commodityId,
-                          'lastRestockDate',
-                          e.target.value ? new Date(e.target.value) : null
-                        )
-                      }
-                      min="2020-01-01"
 
-                    />
-                  </div> */}
-                  {/* Last Restock Date */}
+
+                  </div>
+
+
                   <div>
                     <Label htmlFor={`${commodityId}-restock`}>Last Restock Date *</Label>
                     <Input

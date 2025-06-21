@@ -30,7 +30,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { icon: BarChart3, label: 'Reports', path: '/reports' },
     ...(user?.role === 'ADMIN' ? [
       { icon: Users, label: 'User Management', path: '/admin/users' },
-      { icon: Settings, label: 'Settings', path: '/admin/settings' }
+      // { icon: Settings, label: 'Settings', path: '/admin/settings' }
     ] : [])
   ];
 
