@@ -174,7 +174,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         chaName: formData.chaName,
         communityUnitName: formData.communityUnitName,
         totalChps: Number(formData.totalCHPs),
-        totalCHPSCounted: Number(formData.totalCHPsCounted), // Add this line
+        totalCHPsCounted: Number(formData.totalCHPsCounted), // Add this line
         countyId: county.id,
         subCountyId: subCounty.id,
         wardId: ward.id,
@@ -183,6 +183,10 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         createdAt: new Date().toISOString()
       };
 
+
+
+      console.log('Submitting:', communityUnitData);
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.COMMUNITY_UNITS.CREATE}`, {
         method: 'POST',
         headers: {
@@ -190,6 +194,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
           'Accept': '*/*',
           'Authorization': AUTH_HEADER  // Just change this line
         },
+        
         body: JSON.stringify(communityUnitData)
       });
 
@@ -299,7 +304,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                       <span className="font-medium">Total CHPs:</span> {cu.totalChps ?? '-'}
                     </div>
                     <div>
-                      <span className="font-medium">CHPs Counted:</span> {cu.totalCHPsCounted ?? '-'}
+                      <span className="font-medium">CHPs Counted:</span> {cu.totalCHPSCounted ?? '-'}
                     </div>
                   </div>
                   <div className="flex gap-2 mt-6">
@@ -431,55 +436,55 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                   required
                 />
               </div>
-            <div>
-  <Label htmlFor="totalCHPs">Total CHPs *</Label>
-  <Input
-    id="totalCHPs"
-    type="number"
-    min="1" // disallow 0 directly
-    value={formData.totalCHPs === null ? '' : formData.totalCHPs}
-    onChange={(e) => {
-      const val = e.target.value;
-      const parsed = val === '' ? null : parseInt(val);
+              <div>
+                <Label htmlFor="totalCHPs">Total CHPs *</Label>
+                <Input
+                  id="totalCHPs"
+                  type="number"
+                  min="1" // disallow 0 directly
+                  value={formData.totalCHPs === null ? '' : formData.totalCHPs}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const parsed = val === '' ? null : parseInt(val);
 
-      setFormData((prev) => ({
-        ...prev,
-        totalCHPs: parsed,
-      }));
-    }}
-    required
-  />
-</div>
+                    setFormData((prev) => ({
+                      ...prev,
+                      totalCHPs: parsed,
+                    }));
+                  }}
+                  required
+                />
+              </div>
 
-<div>
-  <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
-  <Input
-    id="totalCHPsCounted"
-    type="number"
-    min="1"
-    value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
-    onChange={(e) => {
-      const val = e.target.value;
-      const parsed = val === '' ? null : parseInt(val);
+              <div>
+                <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
+                <Input
+                  id="totalCHPsCounted"
+                  type="number"
+                  min="1"
+                  value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const parsed = val === '' ? null : parseInt(val);
 
-      // prevent value > totalCHPs
-      if (formData.totalCHPs !== null && parsed > formData.totalCHPs) {
-        toast({
-          title: "Invalid Entry",
-          description: "CHPs counted cannot exceed total CHPs.",
-          variant: "destructive",
-        });
-        return;
-      }
+                    // prevent value > totalCHPs
+                    if (formData.totalCHPs !== null && parsed > formData.totalCHPs) {
+                      toast({
+                        title: "Invalid Entry",
+                        description: "CHPs counted cannot exceed total CHPs.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
 
-      setFormData((prev) => ({
-        ...prev,
-        totalCHPsCounted: parsed,
-      }));
-    }}
-    required
-  />
-</div>
+                    setFormData((prev) => ({
+                      ...prev,
+                      totalCHPsCounted: parsed,
+                    }));
+                  }}
+                  required
+                />
+              </div>
 
             </div>
             <Button type="submit" className="w-full">
