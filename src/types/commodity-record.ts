@@ -15,6 +15,7 @@ export interface CommodityRecord {
   recordDate?: Date;
   earliestExpiryDate: string | null;
   quantityToOrder: number;
+  createdBy?: number | null;
 
 }
 
@@ -22,6 +23,7 @@ export interface CommodityRecord {
 export type CommodityRecordPartial = Partial<CommodityRecord> & {
   earliestExpiryDate?: string | null;
   quantityToOrder?: number;
+  createdBy?: number | null;
 };
 
 // API response type

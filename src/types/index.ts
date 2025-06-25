@@ -54,6 +54,7 @@ export interface CommodityRecord {
   userId: string;
   earliestExpiryDate:string
   quantityToOrder:string
+  createdById: number | null;
 
   
 }

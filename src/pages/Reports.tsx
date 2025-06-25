@@ -90,6 +90,7 @@ interface RecordData {
   stockOutDate: string | null;
   consumptionPeriod: number;
   recordDate: string;
+  createdByUsername: string | null;
   // createdByUsername: string | null;
   countyName: string | null;
   subCountyName: string | null;
@@ -107,6 +108,8 @@ interface ProcessedReportData {
   subCounty: string;
   ward: string;
   facility: string;
+  createdByUsername: string | null;
+
   commodities: Array<{
     name: string;
     consumed: number;
@@ -124,6 +127,8 @@ interface ProcessedReportData {
     lastRestockDate: string | null;
     stockOutDate: string | null;
     earliestExpiryDate: string | null;
+    createdByUsername: string | null;
+
   }>;
   totalConsumption: number;
   commoditiesOutOfStock: string[];
@@ -153,19 +158,6 @@ const getSummaryData = (data: ProcessedReportData[]) => {
     totalConsumption: uniqueValues.totalConsumption
   };
 };
-
-// Add this interface near the top with other interfaces
-// interface DashboardStats {
-//   totalCounties: number;
-//   totalSubCounties: number;
-//   totalWards: number;
-//   totalFacilities: number;
-//   totalCommunityUnits: number;
-//   totalConsumption: number;
-//   monthlyConsumption: Array<{ name: string; consumption: number }>;
-//   stockOutStats: Array<{ communityUnitName: string; commodityNames: string }>;
-//   totalStockOuts: number;
-// }
 
 export const Reports = () => {
   const { toast } = useToast();
@@ -208,28 +200,7 @@ export const Reports = () => {
       // For each commodity in the community unit, create a separate row
       item.commodities.forEach(commodity => {
         exportRows.push({
-          // 'Community Unit': item.communityUnit,
-          // 'County': item.county,
-          // 'Sub-County': item.subCounty,
-          // 'Ward': item.ward,
-          // 'Facility': item.facility,
-          // 'Commodity': commodity.name,
-          // 'Stock On Hand': commodity.stockOnHand,
-          // 'Consumed': commodity.consumed,
-          // 'Issued': commodity.issued,
-          // 'Damaged': commodity.damaged,
-          // 'Returned': commodity.returned,
-          // 'Closing Balance': commodity.closing,
-          // 'Last Restock Date': commodity.lastRestock ? new Date(commodity.lastRestock).toLocaleDateString() : 'N/A',
-          // 'Stock Out Date': commodity.stockOut ? new Date(commodity.stockOut).toLocaleDateString() : 'N/A',
-          // 'Stock Status': commodity.stockOnHand === 0 ? 'Out of Stock' : 'In Stock',
-          // 'Last Update': item.lastUpdate,
-          // 'quantity To Order': commodity.quantityToOrder,
-          // 'lastRestockDate': commodity.lastRestockDate,
-          // 'stockOutDate': commodity.stockOutDate,
-          // 'consumptionPeriod': commodity.consumptionPeriod,
-          // 'earliestExpiryDate': commodity.earliestExpiryDate,
-
+        
           'County': item.county,
           'Sub-County': item.subCounty,
           'Ward': item.ward,
@@ -540,6 +511,7 @@ export const Reports = () => {
       if (result.success) {
         const processedData = processReportData(result.data);
         console.log('what we are getting fromn te record data source', result)
+        console.log('Processed Report Data:', processedData);
         setReportData(processedData);
         return processedData;
       }
@@ -672,66 +644,75 @@ export const Reports = () => {
     setFilteredCommunityUnits(getFilteredCommunityUnits());
   }, [filters.county, filters.subCounty, filters.ward, filters.facility, subCounties, wards, facilities, communityUnits]);
 
-  const processReportData = (records: RecordData[]): ProcessedReportData[] => {
-    const groupedByCU = records.reduce((acc, record) => {
-      if (!acc[record.communityUnitId]) {
-        acc[record.communityUnitId] = {
-          id: record.communityUnitId.toString(),
-          communityUnit: record.communityUnitName,
-          county: record.countyName || 'Not Assigned',
-          subCounty: record.subCountyName || 'Not Assigned',
-          ward: record.wardName || 'Not Assigned',
-          facility: record.facilityName || 'Not Assigned',
-          commodities: [],
-          totalConsumption: 0,
-          commoditiesOutOfStock: [],
-          lastUpdate: record.recordDate,
-        };
+ const processReportData = (records: RecordData[]): ProcessedReportData[] => {
+  const groupedByCU = records.reduce((acc, record) => {
+    const cuId = record.communityUnitId;
+
+    if (!acc[cuId]) {
+      acc[cuId] = {
+        id: cuId.toString(),
+        communityUnit: record.communityUnitName,
+        county: record.countyName || 'Not Assigned',
+        subCounty: record.subCountyName || 'Not Assigned',
+        ward: record.wardName || 'Not Assigned',
+        facility: record.facilityName || 'Not Assigned',
+        commodities: [],
+        totalConsumption: 0,
+        commoditiesOutOfStock: [],
+        lastUpdate: record.recordDate,
+        createdByUsername: record.createdByUsername || 'Unknown',
+      };
+    } else {
+      // ✅ Update createdByUsername if it was 'Unknown' and now we have a valid name
+      if (
+        acc[cuId].createdByUsername === 'Unknown' &&
+        record.createdByUsername
+      ) {
+        acc[cuId].createdByUsername = record.createdByUsername;
       }
 
-      acc[record.communityUnitId].commodities.push({
-        name: record.commodityName,
-        consumed: record.quantityConsumed,
-        expired: record.quantityExpired,
-        damaged: record.quantityDamaged,
-        stockOnHand: record.stockOnHand,
-        issued: record.quantityIssued,
-        returned: record.excessQuantityReturned,
-        closing: record.closingBalance,
-        lastRestock: record.lastRestockDate,
-        stockOutDate: record.stockOutDate,
-        lastRestockDate: record.lastRestockDate,
-        earliestExpiryDate: record.earliestExpiryDate,
-        quantityToOrder: record.quantityToOrder,
-        lastRestockDate: record.lastRestockDate,
-        consumptionPeriod: record.consumptionPeriod
-
-
-
-
-
-
-      });
-
-      acc[record.communityUnitId].totalConsumption += record.quantityConsumed;
-
-      if (record.stockOnHand === 0) {
-        acc[record.communityUnitId].commoditiesOutOfStock.push(record.commodityName);
+      // ✅ Update lastUpdate if this record is more recent
+      if (new Date(record.recordDate) > new Date(acc[cuId].lastUpdate)) {
+        acc[cuId].lastUpdate = record.recordDate;
       }
+    }
 
-      if (new Date(record.recordDate) > new Date(acc[record.communityUnitId].lastUpdate)) {
-        acc[record.communityUnitId].lastUpdate = record.recordDate;
-      }
+    // ✅ Add commodity details
+    acc[cuId].commodities.push({
+      name: record.commodityName,
+      consumed: record.quantityConsumed,
+      expired: record.quantityExpired,
+      damaged: record.quantityDamaged,
+      stockOnHand: record.stockOnHand,
+      issued: record.quantityIssued,
+      returned: record.excessQuantityReturned,
+      closing: record.closingBalance,
+      lastRestock: record.lastRestockDate,
+      stockOutDate: record.stockOutDate,
+      earliestExpiryDate: record.earliestExpiryDate,
+      quantityToOrder: record.quantityToOrder,
+      consumptionPeriod: record.consumptionPeriod,
+      createdByUsername: record.createdByUsername || 'Unknown',
+    });
 
-      return acc;
-    }, {} as Record<number, ProcessedReportData>);
+    // ✅ Track total consumption
+    acc[cuId].totalConsumption += record.quantityConsumed;
 
-    return Object.values(groupedByCU).map(item => ({
-      ...item,
-      lastUpdate: new Date(item.lastUpdate).toLocaleDateString(),
-      commoditiesOutOfStock: [...new Set(item.commoditiesOutOfStock)]
-    }));
-  };
+    // ✅ Track out-of-stock commodities
+    if (record.stockOnHand === 0) {
+      acc[cuId].commoditiesOutOfStock.push(record.commodityName);
+    }
+
+    return acc;
+  }, {} as Record<number, ProcessedReportData>);
+
+  return Object.values(groupedByCU).map(item => ({
+    ...item,
+    lastUpdate: new Date(item.lastUpdate).toLocaleDateString(),
+    commoditiesOutOfStock: [...new Set(item.commoditiesOutOfStock)],
+  }));
+};
+
 
   // Add loading state to the UI
   if (loading) {
@@ -971,166 +952,138 @@ export const Reports = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-xl sm:text-2xl font-bold text-primary">
-              {stats?.totalCounties || 0}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Total Counties</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-xl sm:text-2xl font-bold text-green-600">
-              {stats?.totalSubCounties || 0}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Total Sub-Counties</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-xl sm:text-2xl font-bold text-purple-600">
-              {stats?.totalWards || 0}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Total Wards</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-xl sm:text-2xl font-bold text-orange-600">
-              {stats?.totalConsumption || 0}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Total Consumption</div>
-          </CardContent>
-        </Card>
-      </div> */}
-
-      {/* Detailed Report Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Detailed Report</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Desktop View */}
-          <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Community Unit</TableHead>
-                  <TableHead>Location Details</TableHead>
-                  <TableHead>Commodity Details</TableHead>
-                  <TableHead>Stock Status</TableHead>
-                  <TableHead>Last Update</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {getFilteredReportData().map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.communityUnit}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <p className="font-semibold">{item.county}</p>
-                        <p>{item.subCounty}</p>
-                        <p className="text-sm text-gray-500">{item.ward}</p>
-                        <p className="text-sm text-gray-500">{item.facility}</p>
+  <CardHeader>
+    <CardTitle>Detailed Report</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {/* Desktop View */}
+    <div className="hidden md:block overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Community Unit</TableHead>
+            <TableHead>Location Details</TableHead>
+            <TableHead>Commodity Details</TableHead>
+            <TableHead>Stock Status</TableHead>
+            {/* <TableHead>Created By</TableHead> */}
+            <TableHead>Last Update</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {getFilteredReportData().map((item) => (
+            <TableRow key={item.id}>
+              <TableCell className="font-medium">{item.communityUnit}</TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <p className="font-semibold">{item.county}</p>
+                  <p>{item.subCounty}</p>
+                  <p className="text-sm text-gray-500">{item.ward}</p>
+                  <p className="text-sm text-gray-500">{item.facility}</p>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="space-y-2">
+                  {item.commodities.map((commodity, idx) => (
+                    <div key={idx} className="p-2 bg-gray-50 rounded-md">
+                      <p className="font-medium">{commodity.name}</p>
+                      <div className="grid grid-cols-2 gap-x-4 text-sm">
+                        <span>Consumed: {commodity.consumed}</span>
+                        <span>Issued: {commodity.issued}</span>
+                        <span>Damaged: {commodity.damaged}</span>
+                        <span>Returned: {commodity.returned}</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-2">
-                        {item.commodities.map((commodity, idx) => (
-                          <div key={idx} className="p-2 bg-gray-50 rounded-md">
-                            <p className="font-medium">{commodity.name}</p>
-                            <div className="grid grid-cols-2 gap-x-4 text-sm">
-                              <span>Consumed: {commodity.consumed}</span>
-                              <span>Issued: {commodity.issued}</span>
-                              <span>Damaged: {commodity.damaged}</span>
-                              <span>Returned: {commodity.returned}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {item.commoditiesOutOfStock.length > 0 ? (
-                        <div className="flex flex-col gap-1">
-                          {item.commoditiesOutOfStock.map((commodity, index) => (
-                            <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                              {commodity}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-green-600">All In Stock</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{item.lastUpdate}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile View */}
-          <div className="md:hidden space-y-4">
-            {getFilteredReportData().map((item) => (
-              <div key={item.id} className="bg-white p-4 rounded-lg border">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-bold text-lg">{item.communityUnit}</h3>
-                    <p className="text-sm text-gray-500">{item.facility}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="font-medium">County:</span> {item.county}
                     </div>
-                    <div>
-                      <span className="font-medium">Sub-County:</span> {item.subCounty}
-                    </div>
-                    <div>
-                      <span className="font-medium">Ward:</span> {item.ward}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="font-medium">Commodities:</p>
-                    {item.commodities.map((commodity, idx) => (
-                      <div key={idx} className="p-2 bg-gray-50 rounded-md text-sm">
-                        <p className="font-medium">{commodity.name}</p>
-                        <div className="grid grid-cols-2 gap-1">
-                          <span>Stock: {commodity.stockOnHand}</span>
-                          <span>Used: {commodity.consumed}</span>
-                        </div>
-                      </div>
+                  ))}
+                </div>
+              </TableCell>
+              <TableCell>
+                {item.commoditiesOutOfStock.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {item.commoditiesOutOfStock.map((commodity, index) => (
+                      <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                        {commodity}
+                      </span>
                     ))}
                   </div>
+                ) : (
+                  <span className="text-green-600">All In Stock</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {item.createdByUsername || 'N/A'}
+              </TableCell>
+              <TableCell>{item.lastUpdate}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
 
-                  <div>
-                    <p className="font-medium text-sm">Stock Status:</p>
-                    {item.commoditiesOutOfStock.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {item.commoditiesOutOfStock.map((commodity, index) => (
-                          <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                            {commodity}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-green-600 text-sm">All In Stock</span>
-                    )}
-                  </div>
+    {/* Mobile View */}
+    <div className="md:hidden space-y-4">
+      {getFilteredReportData().map((item) => (
+        <div key={item.id} className="bg-white p-4 rounded-lg border">
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-bold text-lg">{item.communityUnit}</h3>
+              <p className="text-sm text-gray-500">{item.facility}</p>
+            </div>
 
-                  <div className="text-sm text-gray-500">
-                    Last Update: {item.lastUpdate}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="font-medium">County:</span> {item.county}
+              </div>
+              <div>
+                <span className="font-medium">Sub-County:</span> {item.subCounty}
+              </div>
+              <div>
+                <span className="font-medium">Ward:</span> {item.ward}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-medium">Commodities:</p>
+              {item.commodities.map((commodity, idx) => (
+                <div key={idx} className="p-2 bg-gray-50 rounded-md text-sm">
+                  <p className="font-medium">{commodity.name}</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span>Stock: {commodity.stockOnHand}</span>
+                    <span>Used: {commodity.consumed}</span>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <div>
+              <p className="font-medium text-sm">Stock Status:</p>
+              {item.commoditiesOutOfStock.length > 0 ? (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {item.commoditiesOutOfStock.map((commodity, index) => (
+                    <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                      {commodity}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-green-600 text-sm">All In Stock</span>
+              )}
+            </div>
+
+            {/* <div className="text-sm text-gray-500">
+              Created: {item.createdByUsername || 'N/A'}
+            </div> */}
+
+            <div className="text-sm text-gray-500">
+              Last Update: {item.lastUpdate}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      ))}
+    </div>
+  </CardContent>
+</Card>
+
     </div>
   );
 };

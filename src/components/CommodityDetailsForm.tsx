@@ -10,6 +10,8 @@ import { API_CONFIG } from '@/api/config/api.config';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from '@/contexts/AuthContext'; // Add this import
+
 
 
 const STORAGE_KEYS = {
@@ -345,16 +347,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           ? new Date(record.stockOutDate).toISOString()
           : null;
 
-        // Get user from localStorage
-        const savedUser = localStorage.getItem('user');
-        if (!savedUser) {
-          throw new Error('User not found. Please login again.');
-        }
-
-        const user = JSON.parse(savedUser);
-        if (!user.id) {
-          throw new Error('Invalid user data');
-        }
+        const { user } = useAuth();
 
         // Return exact API format
         return {
