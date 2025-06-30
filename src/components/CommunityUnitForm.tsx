@@ -81,7 +81,6 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         const data = await response.json();
         setCommunityUnits(Array.isArray(data.data) ? data.data : []);
       } catch (err) {
-        // Optionally handle error
       }
     };
 
@@ -95,15 +94,15 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
 
   // Filter functions for cascading dropdowns
   const filteredSubCounties = dropdowns?.subCounties.filter(
-    subCounty => subCounty.parentId === selectedIds.countyId
+    subCounty => subCounty.parentIds?.includes(selectedIds.countyId)
   ) || [];
 
   const filteredWards = dropdowns?.wards.filter(
-    ward => ward.parentId === selectedIds.subCountyId
+    ward => ward.parentIds?.includes(selectedIds.subCountyId)
   ) || [];
 
   const filteredFacilities = dropdowns?.facilities.filter(
-    facility => facility.parentId === selectedIds.wardId
+    facility => Array.isArray(facility.parentIds) && facility.parentIds.includes(selectedIds.wardId)
   ) || [];
 
   // Handle selection changes
@@ -192,7 +191,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',
-          'Authorization': AUTH_HEADER  // Just change this line
+          'Authorization': AUTH_HEADER 
         },
         
         body: JSON.stringify(communityUnitData)

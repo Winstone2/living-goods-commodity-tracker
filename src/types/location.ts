@@ -1,8 +1,10 @@
 export interface Location {
+  countyName: string;
   wardName: string;
   id: number;
   name: string;
-  parentId?: number;
+  parentIds?: number[];
+
 }
 
 export interface LocationDropdowns {

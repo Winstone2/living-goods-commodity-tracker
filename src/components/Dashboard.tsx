@@ -181,13 +181,16 @@ export const Dashboard = () => {
               <Users className="w-6 h-6 mx-auto mb-2" />
               <span className="block font-medium">View Community Units</span>
             </button>
-            <button 
-              onClick={() => navigate('/reports')}
-              className="p-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-            >
-              <FileText className="w-6 h-6 mx-auto mb-2" />
-              <span className="block font-medium">Generate Report</span>
-            </button>
+            
+            {user?.role === 'ADMIN' && (
+              <button 
+                onClick={() => navigate('/reports')}
+                className="p-4 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                <FileText className="w-6 h-6 mx-auto mb-2" />
+                <span className="block font-medium">Generate Report</span>
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

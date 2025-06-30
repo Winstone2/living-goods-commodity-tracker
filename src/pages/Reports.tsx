@@ -219,8 +219,6 @@ export const Reports = () => {
           'Stock-out Date': commodity.stockOutDate ? new Date(commodity.stockOutDate).toLocaleDateString() : 'N/A',
           'Consumption Period (Days)': commodity.consumptionPeriod,
           'Earliest Expiry Date': commodity.earliestExpiryDate
-
-
         });
       });
     });
@@ -337,7 +335,7 @@ export const Reports = () => {
     if (!filters.county || filters.county === 'all') {
       return subCounties;
     }
-    return subCounties.filter(sc => sc.countyId?.toString() === filters.county);
+    return subCounties.filter(sc => sc.county_id?.toString() === filters.county);
   };
 
   const getFilteredWards = () => {
@@ -358,30 +356,13 @@ export const Reports = () => {
 
   const getFilteredFacilities = () => {
     if (!filters.ward) {
-      if (!filters.subCounty) {
-        if (!filters.county || filters.county === 'all') {
-          return facilities;
-        }
-        // County selected but no sub-county - show facilities from all wards in county
-        const countyWards = getFilteredWards();
-        return facilities.filter(facility =>
-          countyWards.some(ward => ward.name === facility.type) // You'll need to adjust this based on how Ward relates to Facility
-        );
-      }
-      // Sub-county selected but no ward - show facilities from all wards in sub-county
-      const subCountyWards = getFilteredWards();
-      return facilities.filter(facility =>
-        subCountyWards.some(ward => ward.name === facility.type) // You'll need to adjust this based on how Ward relates to Facility
-      );
+      // ...existing logic for county/subcounty...
+      return facilities;
     }
-
-    // Ward selected - show facilities linked to community units in that ward
-    const wardCommunityUnits = communityUnits.filter(cu =>
-      wards.find(w => w.name === filters.ward && w.subCountyId === cu.subCountyId)
-    );
-
-    return facilities.filter(facility =>
-      wardCommunityUnits.some(cu => cu.linkFacilityId === facility.wardId) // Adjust based on how Facility ID is stored
+    // Ward selected - show facilities linked to the selected ward
+    const wardIds = filteredWards.filter(w => w.subCountyId?.toString() === filters.subCounty).map(w => w.id);
+    return facilities.filter(
+      facility => Array.isArray(facility.parentIds) && facility.parentIds.some(id => wardIds.includes(id))
     );
   };
 
@@ -958,7 +939,15 @@ export const Reports = () => {
   </CardHeader>
   <CardContent>
     {/* Desktop View */}
-    <div className="hidden md:block overflow-x-auto">
+    <div
+      className="hidden md:block overflow-x-auto"
+      style={{
+        maxHeight: '60vh', // or any height you prefer
+        overflowY: 'auto',
+        borderRadius: '0.5rem',
+        border: '1px solid #e5e7eb'
+      }}
+    >
       <Table>
         <TableHeader>
           <TableRow>
@@ -966,7 +955,7 @@ export const Reports = () => {
             <TableHead>Location Details</TableHead>
             <TableHead>Commodity Details</TableHead>
             <TableHead>Stock Status</TableHead>
-            {/* <TableHead>Created By</TableHead> */}
+            <TableHead>Created By</TableHead>
             <TableHead>Last Update</TableHead>
           </TableRow>
         </TableHeader>

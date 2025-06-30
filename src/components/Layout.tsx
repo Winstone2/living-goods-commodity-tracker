@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -27,14 +26,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigationItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
-    { icon: BarChart3, label: 'Reports', path: '/reports' },
     ...(user?.role === 'ADMIN' ? [
+      { icon: BarChart3, label: 'Reports', path: '/reports' },
       { icon: Users, label: 'User Management', path: '/admin/users' },
       // { icon: Settings, label: 'Settings', path: '/admin/settings' }
     ] : [])
   ];
   
-
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMobileMenuOpen(false); // Close mobile menu after navigation
@@ -42,7 +40,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-comic flex flex-col">
-      <header className="bg-white shadow-sm border-b relative z-50">
+      {/* Fixed Header */}
+      <header className="bg-white shadow-sm border-b fixed top-0 left-0 w-full z-50">
         <div className="flex justify-between items-center px-4 sm:px-6 py-4">
           <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Mobile menu button */}
@@ -88,15 +87,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <div className="flex flex-1 relative">
-        {/* Desktop Sidebar */}
-        <nav className="hidden md:block w-64 bg-white shadow-sm border-r">
+      <div className="flex flex-1 relative pt-[72px]"> {/* pt-[72px] = header height */}
+        {/* Fixed Desktop Sidebar */}
+        <nav className="hidden md:block fixed top-[72px] left-0 w-64 h-[calc(100vh-72px)] bg-white shadow-sm border-r z-40">
           <div className="p-4">
             <div className="space-y-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
-                
                 return (
                   <button
                     key={item.path}
@@ -126,7 +124,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
-                    
                     return (
                       <button
                         key={item.path}
@@ -148,13 +145,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         )}
 
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+        {/* Main Content Area */}
+        <main
+          className="flex-1 p-4 sm:p-6 overflow-y-auto"
+          style={{
+            marginLeft: '0',
+            marginTop: 0,
+            ...(window.innerWidth >= 768 ? { marginLeft: '16rem' } : {}), // 64px * 4 = 256px = 16rem
+            height: 'calc(100vh - 72px - 48px)' // header 72px, footer 48px
+          }}
+        >
           {children}
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-white border-t py-3 text-center text-sm text-gray-600">
+      {/* Fixed Footer */}
+      <footer className="bg-white border-t py-3 text-center text-sm text-gray-600 fixed bottom-0 left-0 w-full z-50">
         <p>&copy; 2025 Living Goods. All rights reserved.</p>
       </footer>
     </div>
