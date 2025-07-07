@@ -135,7 +135,7 @@ interface ProcessedReportData {
   lastUpdate: string;
   // createdBy: string | null;
 }
-
+ 
 // Add this function before the Reports component
 const getSummaryData = (data: ProcessedReportData[]) => {
   const uniqueValues = data.reduce((acc, item) => {
@@ -328,7 +328,6 @@ export const Reports = () => {
       });
     }
   };
-
 
   // Add these helper functions before getFilteredReportData
   const getFilteredSubCounties = () => {
@@ -955,7 +954,7 @@ export const Reports = () => {
             <TableHead>Location Details</TableHead>
             <TableHead>Commodity Details</TableHead>
             <TableHead>Stock Status</TableHead>
-            <TableHead>Created By</TableHead>
+            {/* <TableHead>Created By</TableHead> */}
             <TableHead>Last Update</TableHead>
           </TableRow>
         </TableHeader>
@@ -999,9 +998,9 @@ export const Reports = () => {
                   <span className="text-green-600">All In Stock</span>
                 )}
               </TableCell>
-              <TableCell>
+              {/* <TableCell>
                 {item.createdByUsername || 'N/A'}
-              </TableCell>
+              </TableCell> */}
               <TableCell>{item.lastUpdate}</TableCell>
             </TableRow>
           ))}

@@ -302,14 +302,15 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                     <div>
                       <span className="font-medium">Total CHPs:</span> {cu.totalChps ?? '-'}
                     </div>
-                    <div>
+                    {/* <div>
                       <span className="font-medium">CHPs Counted:</span> {cu.totalCHPSCounted ?? '-'}
-                    </div>
+                    </div> */}
                   </div>
-                  <div className="flex gap-2 mt-6">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-6">
                     <Button
                       type="button"
                       variant="default"
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         localStorage.setItem(STORAGE_KEYS.COMMUNITY_UNIT_ID, String(cu.id));
                         toast({
@@ -324,6 +325,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => setSelectedCommunityUnitId(null)}
                     >
                       Clear Selection

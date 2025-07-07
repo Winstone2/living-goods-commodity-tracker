@@ -140,12 +140,12 @@ const CommunityUnits: React.FC = () => {
                 <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                         <Users className="w-5 h-5 text-primary" />
-                        <span>Community Units List</span>
+                        <span>Community Units</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="hidden md:table w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="text-left py-4 px-6 font-semibold text-gray-900">Community Unit</th>
@@ -305,6 +305,69 @@ const CommunityUnits: React.FC = () => {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Mobile View: Card List */}
+            <div className="block md:hidden space-y-4 p-4">
+              {paginatedUnits.map((unit) => (
+                <div
+                  key={unit.id}
+                  className="bg-white rounded-xl shadow-md border border-gray-100 p-4 transition-transform duration-150 hover:scale-[1.02] active:scale-100 hover:shadow-lg"
+                >
+                  <div className="flex items-center mb-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                      <Home className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-lg text-gray-900">{unit.communityUnitName}</div>
+                      <div className="text-xs text-gray-400">ID: {unit.id}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2">
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Users className="w-4 h-4 mr-1 text-blue-500" />
+                      <span className="font-medium">CHA:</span>&nbsp;{unit.chaName}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Users className="w-4 h-4 mr-1 text-green-600" />
+                      <span className="font-medium">Total CHPs:</span>&nbsp;{unit.totalChps}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Users className="w-4 h-4 mr-1 text-orange-500" />
+                      <span className="font-medium">Counted:</span>&nbsp;{unit.totalCHPsCounted}
+                      <span
+                        className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          unit.totalCHPsCounted >= unit.totalChps
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-orange-100 text-orange-700'
+                        }`}
+                      >
+                        {Math.round((unit.totalCHPsCounted / unit.totalChps) * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <MapPin className="w-4 h-4 mr-1 text-purple-500" />
+                      <span className="font-medium">County:</span>&nbsp;{unit.countyName}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <MapPin className="w-4 h-4 mr-1 text-purple-400" />
+                      <span className="font-medium">Ward:</span>&nbsp;{unit.wardName}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Package className="w-4 h-4 mr-1 text-indigo-500" />
+                      <span className="font-medium">Stock:</span>&nbsp;{unit.stockLevel ?? 0}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700 col-span-2">
+                      <Calendar className="w-4 h-4 mr-1 text-gray-400" />
+                      <span className="font-medium">Created:</span>&nbsp;{formatDate(unit.createdAt)}
+                    </div>
+                  </div>
+                  {/* Optional: Add a details button or menu */}
+                  {/* <button className="mt-2 w-full py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition">
+                    View Details
+                  </button> */}
+                </div>
+              ))}
             </div>
         </div>
     );
