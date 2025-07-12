@@ -16,6 +16,7 @@ export interface CommodityRecord {
   earliestExpiryDate: string | null;
   quantityToOrder: number;
   createdBy?: number | null;
+  chpId?: number | null; // Add this field for CHP ID
 
 }
 
@@ -24,6 +25,7 @@ export type CommodityRecordPartial = Partial<CommodityRecord> & {
   earliestExpiryDate?: string | null;
   quantityToOrder?: number;
   createdBy?: number | null;
+  chpId?: number | null;
 };
 
 // API response type

@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CommunityUnit } from '@/types';
 import { Location, LocationDropdowns } from '@/types/location';
 import { API_CONFIG } from '@/api/config/api.config';
-import { useAuth } from '@/contexts/AuthContext'; // Add this import
+import { useAuth } from '@/contexts/AuthContext';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 const STORAGE_KEYS = {
@@ -17,12 +17,12 @@ const STORAGE_KEYS = {
 } as const;
 
 interface CommunityUnitFormProps {
-  onSubmit: (data: Partial<CommunityUnit>) => void;
+  onSubmit: (data: Partial<CommunityUnit> & { chpId?: number }) => void;
   initialData?: Partial<CommunityUnit>;
 }
 
 export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, initialData }) => {
-  const { user } = useAuth(); // Add this hook
+  const { user } = useAuth();
   const { toast } = useToast();
   const [dropdowns, setDropdowns] = useState<LocationDropdowns | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,12 +37,15 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     ward: initialData?.ward || '',
     linkFacility: initialData?.linkFacility || '',
     communityUnitName: initialData?.communityUnitName || '',
-    chaName: initialData?.chaName || '',
-    totalCHPs: initialData?.totalCHPs || 0,
-    totalCHPsCounted: initialData?.totalCHPsCounted || 0 // Add default value
+    // chaName: initialData?.chaName || '',
+    // totalCHPs: initialData?.totalCHPs || 0,
+    // totalCHPsCounted: initialData?.totalCHPsCounted || 0
   });
   const [communityUnits, setCommunityUnits] = useState<CommunityUnit[]>([]);
   const [selectedCommunityUnitId, setSelectedCommunityUnitId] = useState<number | null>(null);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [chps, setChps] = useState<{ id: number; username: string; email: string }[]>([]);
+  const [selectedChpId, setSelectedChpId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -81,12 +84,36 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         const data = await response.json();
         setCommunityUnits(Array.isArray(data.data) ? data.data : []);
       } catch (err) {
+        // Optionally handle error
       }
     };
 
     fetchDropdowns();
     fetchUnits();
   }, []);
+
+  const fetchChps = async (chaId: number) => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cha/${chaId}/chps`, {
+        headers: { 'Accept': '*/*', 'Authorization': AUTH_HEADER }
+      });
+      if (!response.ok) throw new Error('Failed to fetch CHPs');
+      const data = await response.json();
+      setChps(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load CHPs",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'CHA' && selectedCommunityUnitId && user.id) {
+      fetchChps(user.id);
+    }
+  }, [selectedCommunityUnitId, user]);
 
   if (loading) {
     return <div>Loading location data...</div>;
@@ -170,10 +197,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
       }
 
       const communityUnitData = {
-        chaName: formData.chaName,
         communityUnitName: formData.communityUnitName,
-        totalChps: Number(formData.totalCHPs),
-        totalCHPsCounted: Number(formData.totalCHPsCounted), // Add this line
         countyId: county.id,
         subCountyId: subCounty.id,
         wardId: ward.id,
@@ -182,18 +206,13 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         createdAt: new Date().toISOString()
       };
 
-
-
-      console.log('Submitting:', communityUnitData);
-
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.COMMUNITY_UNITS.CREATE}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': '*/*',
-          'Authorization': AUTH_HEADER 
+          'Authorization': AUTH_HEADER
         },
-        
         body: JSON.stringify(communityUnitData)
       });
 
@@ -209,17 +228,18 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         const communityUnitId = result.data.id;
         localStorage.setItem(STORAGE_KEYS.COMMUNITY_UNIT_ID, String(communityUnitId));
 
-        console.log('Stored Community Unit ID:', {
-          id: communityUnitId,
-          timestamp: new Date().toISOString()
-        });
-
         toast({
           title: "Success",
           description: "Community unit created successfully"
         });
 
-        onSubmit(formData);
+        if (user?.role === 'CHA') {
+          await fetchChps(user.id);
+          setStep(2);
+        } else {
+          // proceed as before for non-CHA
+          onSubmit(formData);
+        }
         return communityUnitId;
       } else {
         throw new Error(result.message);
@@ -232,11 +252,13 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create community unit"
       });
-      // Clear the stored ID if there's an error
       localStorage.removeItem(STORAGE_KEYS.COMMUNITY_UNIT_ID);
       throw error;
     }
   };
+
+  // Only ADMIN can see the CU creation form
+  const canCreateCU = user?.role === 'ADMIN';
 
   return (
     <Card>
@@ -252,9 +274,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
             onValueChange={(value) => {
               const cu = communityUnits.find(u => u.id.toString() === value);
               setSelectedCommunityUnitId(cu?.id ?? null);
-              if (cu) {
-                // Optionally fill form fields with CU details if you want
-              }
+              // Optionally fill form fields with CU details if you want
             }}
           >
             <SelectTrigger>
@@ -288,45 +308,64 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                       <span className="font-medium">Community Unit Name:</span> {cu.communityUnitName}
                     </div>
                     <div>
-                      <span className="font-medium">CHA Name:</span> {cu.chaName}
-                    </div>
-                    {/* <div>
-                      <span className="font-medium">County:</span> {county}
-                    </div> */}
-                    <div>
                       <span className="font-medium">Sub-County:</span> {subCounty}
                     </div>
-                    {/* <div>
-                      <span className="font-medium">Ward:</span> {ward}
-                    </div> */}
-                    <div>
-                      <span className="font-medium">Total CHPs:</span> {cu.totalChps ?? '-'}
-                    </div>
-                    {/* <div>
-                      <span className="font-medium">CHPs Counted:</span> {cu.totalCHPSCounted ?? '-'}
-                    </div> */}
+                  </div>
+                  {/* CHP Selection Dropdown */}
+                  <div className="mt-4">
+                    <Label htmlFor="chpSelect">Select CHP *</Label>
+                    <Select
+                      value={selectedChpId ? selectedChpId.toString() : ""}
+                      onValueChange={val => {
+                        setSelectedChpId(Number(val));
+                        // Store in localStorage/sessionStorage
+                        localStorage.setItem('livingGoods_selectedChpId', val);
+                        sessionStorage.setItem('livingGoods_selectedChpId', val);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select CHP" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chps.map(chp => (
+                          <SelectItem key={chp.id} value={chp.id.toString()}>
+                            {chp.username} ({chp.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 mt-6">
                     <Button
                       type="button"
                       variant="default"
                       className="w-full sm:w-auto"
+                      disabled={!selectedChpId}
                       onClick={() => {
                         localStorage.setItem(STORAGE_KEYS.COMMUNITY_UNIT_ID, String(cu.id));
                         toast({
                           title: "Success",
-                          description: "Community unit selected and saved."
+                          description: "Community unit and CHP selected and saved."
                         });
-                        onSubmit(cu);
+                        onSubmit({
+                          ...cu,
+                          communityUnitId: cu.id,
+                          chpId: selectedChpId
+                        });
                       }}
                     >
-                      Save Community Unit Selection
+                      Save Selection & Proceed
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       className="w-full sm:w-auto"
-                      onClick={() => setSelectedCommunityUnitId(null)}
+                      onClick={() => {
+                        setSelectedCommunityUnitId(null);
+                        setSelectedChpId(null);
+                        localStorage.removeItem('livingGoods_selectedChpId');
+                        sessionStorage.removeItem('livingGoods_selectedChpId');
+                      }}
                     >
                       Clear Selection
                     </Button>
@@ -336,162 +375,198 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
             })()}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="county">County *</Label>
-                <Select
-                  value={formData.county}
-                  onValueChange={handleCountyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select county" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dropdowns?.counties.map((county) => (
-                      <SelectItem key={county.id} value={county.name}>
-                        {county.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          // Only show the CU creation form if ADMIN
+          canCreateCU && step === 1 && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="county">County *</Label>
+                  <Select
+                    value={formData.county}
+                    onValueChange={handleCountyChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select county" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dropdowns?.counties.map((county) => (
+                        <SelectItem key={county.id} value={county.name}>
+                          {county.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="subCounty">Sub-County *</Label>
+                  <Select
+                    value={formData.subCounty}
+                    onValueChange={handleSubCountyChange}
+                    disabled={!formData.county}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sub-county" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredSubCounties.map((subCounty) => (
+                        <SelectItem key={subCounty.id} value={subCounty.name}>
+                          {subCounty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="ward">Ward *</Label>
+                  <Select
+                    value={formData.ward}
+                    onValueChange={handleWardChange}
+                    disabled={!formData.subCounty}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ward" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredWards.map((ward) => (
+                        <SelectItem key={ward.id} value={ward.name}>
+                          {ward.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="linkFacility">Link Facility *</Label>
+                  <Select
+                    value={formData.linkFacility}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, linkFacility: value }))}
+                    disabled={!formData.ward}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select facility" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredFacilities.map((facility) => (
+                        <SelectItem key={facility.id} value={facility.name}>
+                          {facility.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="communityUnitName">Community Unit Name *</Label>
+                  <Input
+                    id="communityUnitName"
+                    value={formData.communityUnitName}
+                    onChange={(e) => setFormData({ ...formData, communityUnitName: e.target.value })}
+                    placeholder="Enter community unit name"
+                    required
+                  />
+                </div>
+
+                {/* CHA/CHPs fields commented out */}
+                {/*
+                <div>
+                  <Label htmlFor="chaName">CHA Name *</Label>
+                  <Input
+                    id="chaName"
+                    value={formData.chaName}
+                    onChange={(e) => setFormData({ ...formData, chaName: e.target.value })}
+                    placeholder="Enter CHA name"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="totalCHPs">Total CHPs *</Label>
+                  <Input
+                    id="totalCHPs"
+                    type="number"
+                    min="1"
+                    value={formData.totalCHPs === null ? '' : formData.totalCHPs}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const parsed = val === '' ? null : parseInt(val);
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        totalCHPs: parsed,
+                      }));
+                    }}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
+                  <Input
+                    id="totalCHPsCounted"
+                    type="number"
+                    min="1"
+                    value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const parsed = val === '' ? null : parseInt(val);
+
+                      // prevent value > totalCHPs
+                      if (formData.totalCHPs !== null && parsed > formData.totalCHPs) {
+                        toast({
+                          title: "Invalid Entry",
+                          description: "CHPs counted cannot exceed total CHPs.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        totalCHPsCounted: parsed,
+                      }));
+                    }}
+                    required
+                  />
+                </div>
+                */}
               </div>
-
-              <div>
-                <Label htmlFor="subCounty">Sub-County *</Label>
-                <Select
-                  value={formData.subCounty}
-                  onValueChange={handleSubCountyChange}
-                  disabled={!formData.county}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sub-county" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredSubCounties.map((subCounty) => (
-                      <SelectItem key={subCounty.id} value={subCounty.name}>
-                        {subCounty.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="ward">Ward *</Label>
-                <Select
-                  value={formData.ward}
-                  onValueChange={handleWardChange}
-                  disabled={!formData.subCounty}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select ward" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredWards.map((ward) => (
-                      <SelectItem key={ward.id} value={ward.name}>
-                        {ward.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="linkFacility">Link Facility *</Label>
-                <Select
-                  value={formData.linkFacility}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, linkFacility: value }))}
-                  disabled={!formData.ward}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select facility" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredFacilities.map((facility) => (
-                      <SelectItem key={facility.id} value={facility.name}>
-                        {facility.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="communityUnitName">Community Unit Name *</Label>
-                <Input
-                  id="communityUnitName"
-                  value={formData.communityUnitName}
-                  onChange={(e) => setFormData({ ...formData, communityUnitName: e.target.value })}
-                  placeholder="Enter community unit name"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="chaName">CHA Name *</Label>
-                <Input
-                  id="chaName"
-                  value={formData.chaName}
-                  onChange={(e) => setFormData({ ...formData, chaName: e.target.value })}
-                  placeholder="Enter CHA name"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="totalCHPs">Total CHPs *</Label>
-                <Input
-                  id="totalCHPs"
-                  type="number"
-                  min="1" // disallow 0 directly
-                  value={formData.totalCHPs === null ? '' : formData.totalCHPs}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = val === '' ? null : parseInt(val);
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      totalCHPs: parsed,
-                    }));
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
-                <Input
-                  id="totalCHPsCounted"
-                  type="number"
-                  min="1"
-                  value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = val === '' ? null : parseInt(val);
-
-                    // prevent value > totalCHPs
-                    if (formData.totalCHPs !== null && parsed > formData.totalCHPs) {
-                      toast({
-                        title: "Invalid Entry",
-                        description: "CHPs counted cannot exceed total CHPs.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      totalCHPsCounted: parsed,
-                    }));
-                  }}
-                  required
-                />
-              </div>
-
-            </div>
-            <Button type="submit" className="w-full">
-              Save Community Unit Information
+              <Button type="submit" className="w-full">
+                Save Community Unit Information
+              </Button>
+            </form>
+          )
+        )}
+        {/* Step 2: CHP Selection */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <Label htmlFor="chpSelect">Select CHP *</Label>
+            <Select
+              value={selectedChpId ? selectedChpId.toString() : ""}
+              onValueChange={val => setSelectedChpId(Number(val))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select CHP" />
+              </SelectTrigger>
+              <SelectContent>
+                {chps.map(chp => (
+                  <SelectItem key={chp.id} value={chp.id.toString()}>
+                    {chp.username} ({chp.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              className="w-full"
+              disabled={!selectedChpId}
+              onClick={() => {
+                // Now open the commodity record form, passing selectedChpId
+                onSubmit({ ...formData, chpId: selectedChpId });
+              }}
+            >
+              Proceed to Commodity Record
             </Button>
-          </form>
+          </div>
         )}
       </CardContent>
     </Card>

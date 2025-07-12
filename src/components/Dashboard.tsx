@@ -7,6 +7,7 @@ import { API_CONFIG } from '@/api/config/api.config';
 import type { DashboardStats } from '@/types/dashboard';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
 // import CommunityUnits from '@/pages/CommunityUnits';
+import CollapsibleCHPTable from './CollapsibleCHPTable'; // <-- Import the table
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -21,8 +22,7 @@ export const Dashboard = () => {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.DASHBOARD.STATS}`, {
           headers: {
             'Accept': '*/*',
-              'Authorization': AUTH_HEADER  // Just change this line
-
+            'Authorization': AUTH_HEADER
           }
         });
 
@@ -194,6 +194,11 @@ export const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Collapsible CHP Table - Only visible to ADMIN */}
+      {user?.role === 'ADMIN' && (
+        <CollapsibleCHPTable />
+      )}
     </div>
   );
 };

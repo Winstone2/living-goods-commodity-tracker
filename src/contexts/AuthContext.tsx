@@ -46,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       const data = await response.json();
+      console.log("this is what the backend gives",data);
 
       if (data.success) {
         const userData: User = {

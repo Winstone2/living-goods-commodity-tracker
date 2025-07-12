@@ -16,7 +16,8 @@ import { useAuth } from '@/contexts/AuthContext'; // Add this import
 
 const STORAGE_KEYS = {
   COMMUNITY_UNIT_ID: 'livingGoods_communityUnitId',
-  SELECTED_COMMODITIES: 'livingGoods_selectedCommodities'
+  SELECTED_COMMODITIES: 'livingGoods_selectedCommodities',
+  SELECTED_CHP_ID: 'livingGoods_selectedChpId' // <-- Add this if not already present
 } as const;
 
 interface CommodityDetailsFormProps {
@@ -142,6 +143,11 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     const storedId = localStorage.getItem(STORAGE_KEYS.COMMUNITY_UNIT_ID);
     const parsedId = storedId ? Number(storedId) : null;
 
+    console.log('Fetching community unit ID from localStorage:', {
+      storedId,
+      parsedId
+    });
+
     console.log('Community Unit ID Check:', {
       fromProps: propsCommunityUnitId,
       fromStorage: storedId,
@@ -215,6 +221,8 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     });
 
     const initialRecords: Record<string, Partial<CommodityRecord>> = {};
+    const storedId = localStorage.getItem(STORAGE_KEYS.COMMUNITY_UNIT_ID);
+    const parsedId = storedId ? Number(storedId) : null;
     selectedCommodities.forEach(commodityId => {
       initialRecords[commodityId] = {
         commodityId: Number(commodityId),
@@ -231,6 +239,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         quantityToOrder: 0,
         lastRestockDate: null,
         stockOutDate: null,
+        chpId: parsedId, // This will be set later
       };
     });
 
@@ -321,6 +330,17 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
     return true;
   };
 
+  const getCreatedBy = () => {
+    // Try to get from localStorage (set during CU/CHP selection)
+    const chpId = localStorage.getItem(STORAGE_KEYS.SELECTED_CHP_ID);
+    if (chpId && !isNaN(Number(chpId))) {
+      return Number(chpId);
+    }
+    // fallback to user from context if needed
+    if (user && user.id) return Number(user.id);
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -328,6 +348,8 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
       if (!communityUnitId || communityUnitId <= 0) {
         throw new Error('Valid Community Unit ID is required');
       }
+
+      const createdBy = getCreatedBy();
 
       const records = Object.values(commodityRecords).map(record => {
         // Calculate the quantity to order
@@ -365,7 +387,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           quantityToOrder: quantityToOrder,
           stockOutDate: stockOutDate,
           lastRestockDate: record.lastRestockDate,
-          createdBy: Number(user.id) // Add user ID from localStorage
+          chpId: createdBy // <-- Use the extracted CHP id or fallback
         };
       });
 

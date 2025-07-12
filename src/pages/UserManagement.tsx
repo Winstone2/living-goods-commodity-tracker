@@ -24,7 +24,7 @@ export const UserManagement = () => {
     username: '',
     email: '',
     password: '',
-    role: 'USER' as 'ADMIN' | 'USER'
+    role: 'USER' as 'ADMIN' | 'USER' | 'CHA'
   });
 
   useEffect(() => {

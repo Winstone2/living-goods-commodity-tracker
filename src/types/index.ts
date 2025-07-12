@@ -6,7 +6,7 @@ export * from './commodity-record';
 export interface User {
   id: string;
   username: string;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'USER' | 'CHA';
   createdAt: Date;
   token?: string; // Optional for legacy support
 }
@@ -26,6 +26,7 @@ export interface CommunityUnit {
   wardId: number;
   linkFacilityId: number;
   createdById: number | null;
+  chpId: number | null; // Add this field for CHP ID
   stockLevel: number | null; // Add this field for stock level
   createdAt: string;
 }

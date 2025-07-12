@@ -11,6 +11,7 @@ export interface CommunityUnitResponse {
     wardName: number;
     linkFacilityId: number;
     createdById: number | null;
+    chpId: number | null;
     createdAt: string;
     
   };

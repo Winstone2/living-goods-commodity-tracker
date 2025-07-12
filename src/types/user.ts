@@ -3,7 +3,7 @@ export interface User {
   version: number;
   username: string;
   email: string;
-  role: 'ADMIN' | 'USER';
+  role: 'ADMIN' | 'USER' |'CHA';
   createdAt: string;
   lastLogin: string | null;
   resetToken: string | null;
