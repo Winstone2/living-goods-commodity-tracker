@@ -252,7 +252,7 @@ export const Management = () => {
                   <SelectContent>
                     {communityUnits.map((unit) => (
                       <SelectItem key={unit.id} value={unit.id.toString()}>
-                        {unit.communityUnitName} - {unit.wardName}
+                        {unit.communityUnitName}
                       </SelectItem>
                     ))}
                   </SelectContent>
