@@ -3,6 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Home, Package, BarChart3, Users, Settings, Menu, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { AUTH_HEADER } from '@/api/config/auth-headers';
+import { toast } from 'sonner';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,10 +17,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+ const handleLogout = () => {
+  logout();
+  navigate('/');
+  localStorage.removeItem('user'); // Clear user data from local storage
+  toast.success('Logged out successfully');
+};
+
+
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -29,6 +36,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     ...(user?.role === 'ADMIN' ? [
       { icon: BarChart3, label: 'Reports', path: '/reports' },
       { icon: Users, label: 'User Management', path: '/admin/users' },
+      //management
+      { icon: Users, label: 'Management', path: '/management' },
       // { icon: Settings, label: 'Settings', path: '/admin/settings' }
     ] : [])
   ];

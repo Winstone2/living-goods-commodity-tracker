@@ -68,22 +68,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
-    try {
-      if (user?.token) {
-        await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.AUTH.LOGOUT}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-      }
-    } finally {
-      setUser(null);
-      localStorage.removeItem('user');
-    }
-  };
+  const logout = () => {
+  setUser(null);
+  localStorage.removeItem('user');
+  sessionStorage.clear(); // Optional: if you're using sessionStorage anywhere
+};
+
+
+  // const logout = async () => {
+  //   try {
+  //     if (user?.token) {
+  //       await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.AUTH.LOGOUT}`, {
+  //         method: 'POST',
+  //         headers: {
+  //         'Authorization': AUTH_HEADER,
+  //           'Content-Type': 'application/json'
+  //         }
+  //       });
+  //     }
+  //   } finally {
+  //     setUser(null);
+  //     localStorage.removeItem('user');
+  //   }
+  // };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoading }}>

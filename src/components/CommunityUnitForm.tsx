@@ -37,14 +37,11 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     ward: initialData?.ward || '',
     linkFacility: initialData?.linkFacility || '',
     communityUnitName: initialData?.communityUnitName || '',
-    // chaName: initialData?.chaName || '',
-    // totalCHPs: initialData?.totalCHPs || 0,
-    // totalCHPsCounted: initialData?.totalCHPsCounted || 0
   });
   const [communityUnits, setCommunityUnits] = useState<CommunityUnit[]>([]);
   const [selectedCommunityUnitId, setSelectedCommunityUnitId] = useState<number | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
-  const [chps, setChps] = useState<{ id: number; username: string; email: string }[]>([]);
+  const [chps, setChps] = useState<{ id: number; Username: string; Email: string; chpUsername: string; chpEmail: string }[]>([]);
   const [selectedChpId, setSelectedChpId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -94,26 +91,54 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
 
   const fetchChps = async (chaId: number) => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cha/${chaId}/chps`, {
-        headers: { 'Accept': '*/*', 'Authorization': AUTH_HEADER }
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.CHA.CHPS(chaId)}`, {
+        headers: {
+          'Accept': '*/*',
+          'Authorization': AUTH_HEADER,
+        },
       });
-      if (!response.ok) throw new Error('Failed to fetch CHPs');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CHPs: ${response.status}`);
+      }
+
       const data = await response.json();
-      setChps(data);
+      console.log("✅ CHPs data received:", data);
+
+      // Extract and map CHPs
+      const mappedCHPs = data.chps.map((chp: any) => ({
+        id: chp.chpId,
+        Username: chp.chpUsername,
+        Email: chp.chpEmail,
+        chpUsername: chp.chpUsername,
+        chpEmail: chp.chpEmail,
+        stats: chp.stats,
+        recordCount: chp.commodityRecords?.length ?? 0,
+      }));
+
+      setChps(mappedCHPs);
+
+      toast({
+        title: "Success",
+        description: `Loaded ${mappedCHPs.length} CHPs`,
+      });
+
     } catch (error) {
+      console.error("❌ CHP fetch error:", error);
       toast({
         title: "Error",
-        description: "Failed to load CHPs",
+        description: "Failed to load CHPs. Please try again.",
         variant: "destructive",
       });
     }
   };
 
+  // Fixed: Fetch CHPs when user is CHA, regardless of community unit selection
   useEffect(() => {
-    if (user?.role === 'CHA' && selectedCommunityUnitId && user.id) {
+    if (user?.role === 'CHA' && user.id) {
       fetchChps(user.id);
     }
-  }, [selectedCommunityUnitId, user]);
+  }, [user]);
 
   if (loading) {
     return <div>Loading location data...</div>;
@@ -234,7 +259,6 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
         });
 
         if (user?.role === 'CHA') {
-          await fetchChps(user.id);
           setStep(2);
         } else {
           // proceed as before for non-CHA
@@ -292,7 +316,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
 
         {/* Show details if selected, else show form */}
         {selectedCommunityUnitId ? (
-          <div className="p-4 mb-4 bg-gray-50 rounded border">
+          <div className="p-4 mb-4 bg-muted/20 rounded border">
             {(() => {
               const cu = communityUnits.find(u => u.id === selectedCommunityUnitId);
               if (!cu) return null;
@@ -321,17 +345,20 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                         // Store in localStorage/sessionStorage
                         localStorage.setItem('livingGoods_selectedChpId', val);
                         sessionStorage.setItem('livingGoods_selectedChpId', val);
+                        console.log("Selected CHP ID:", val);
                       }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select CHP" />
                       </SelectTrigger>
                       <SelectContent>
-                        {chps.map(chp => (
-                          <SelectItem key={chp.id} value={chp.id.toString()}>
-                            {chp.username} ({chp.email})
-                          </SelectItem>
-                        ))}
+                        {chps
+                          .filter(chp => chp && chp.id !== undefined && chp.chpUsername && chp.chpEmail)
+                          .map(chp => (
+                            <SelectItem key={chp.id} value={chp.id.toString()}>
+                              {chp.chpUsername} ({chp.chpEmail})
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -349,7 +376,6 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                         });
                         onSubmit({
                           ...cu,
-                          communityUnitId: cu.id,
                           chpId: selectedChpId
                         });
                       }}
@@ -468,68 +494,6 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                     required
                   />
                 </div>
-
-                {/* CHA/CHPs fields commented out */}
-                {/*
-                <div>
-                  <Label htmlFor="chaName">CHA Name *</Label>
-                  <Input
-                    id="chaName"
-                    value={formData.chaName}
-                    onChange={(e) => setFormData({ ...formData, chaName: e.target.value })}
-                    placeholder="Enter CHA name"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="totalCHPs">Total CHPs *</Label>
-                  <Input
-                    id="totalCHPs"
-                    type="number"
-                    min="1"
-                    value={formData.totalCHPs === null ? '' : formData.totalCHPs}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const parsed = val === '' ? null : parseInt(val);
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        totalCHPs: parsed,
-                      }));
-                    }}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="totalCHPsCounted">CHPs whose Commodities were Counted *</Label>
-                  <Input
-                    id="totalCHPsCounted"
-                    type="number"
-                    min="1"
-                    value={formData.totalCHPsCounted === null ? '' : formData.totalCHPsCounted}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const parsed = val === '' ? null : parseInt(val);
-
-                      // prevent value > totalCHPs
-                      if (formData.totalCHPs !== null && parsed > formData.totalCHPs) {
-                        toast({
-                          title: "Invalid Entry",
-                          description: "CHPs counted cannot exceed total CHPs.",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        totalCHPsCounted: parsed,
-                      }));
-                    }}
-                    required
-                  />
-                </div>
-                */}
               </div>
               <Button type="submit" className="w-full">
                 Save Community Unit Information
@@ -549,11 +513,13 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                 <SelectValue placeholder="Select CHP" />
               </SelectTrigger>
               <SelectContent>
-                {chps.map(chp => (
-                  <SelectItem key={chp.id} value={chp.id.toString()}>
-                    {chp.username} ({chp.email})
-                  </SelectItem>
-                ))}
+                {chps
+                  .filter(chp => chp && chp.id !== undefined && chp.chpUsername && chp.chpEmail)
+                  .map(chp => (
+                    <SelectItem key={chp.id} value={chp.id.toString()}>
+                      {chp.chpUsername} ({chp.chpEmail})
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <Button

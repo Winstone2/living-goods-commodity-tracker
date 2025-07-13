@@ -222,7 +222,11 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
 
     const initialRecords: Record<string, Partial<CommodityRecord>> = {};
     const storedId = localStorage.getItem(STORAGE_KEYS.COMMUNITY_UNIT_ID);
+    const chpId = sessionStorage.getItem(STORAGE_KEYS.SELECTED_CHP_ID) || getCreatedBy();
+
+
     const parsedId = storedId ? Number(storedId) : null;
+    const parsedId2= chpId ? Number(chpId) : null;
     selectedCommodities.forEach(commodityId => {
       initialRecords[commodityId] = {
         commodityId: Number(commodityId),
@@ -239,7 +243,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         quantityToOrder: 0,
         lastRestockDate: null,
         stockOutDate: null,
-        chpId: parsedId, // This will be set later
+        chpId: parsedId2, // This will be set later
       };
     });
 
@@ -364,6 +368,8 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
         const expiryDate = record.earliestExpiryDate
           ? new Date(record.earliestExpiryDate).toISOString()
           : new Date().toISOString();
+          const chpId = sessionStorage.getItem('livingGoods_selectedChpId');
+
 
         const stockOutDate = record.stockOutDate
           ? new Date(record.stockOutDate).toISOString()
@@ -387,7 +393,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
           quantityToOrder: quantityToOrder,
           stockOutDate: stockOutDate,
           lastRestockDate: record.lastRestockDate,
-          chpId: createdBy // <-- Use the extracted CHP id or fallback
+          chpId: parsedId2 // <-- Use the extracted CHP id or fallback
         };
       });
 

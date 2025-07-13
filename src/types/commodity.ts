@@ -24,6 +24,7 @@ export interface CommodityRecordRequest {
   quantityConsumed: number;
   closingBalance: number;
   consumptionPeriod: number;
+  
 }
 
 export interface CommodityResponse {
