@@ -24,7 +24,7 @@ export const UserManagement = () => {
     username: '',
     email: '',
     password: '',
-    role: 'USER' as 'ADMIN' | 'USER' | 'CHA'
+    role: 'USER' as 'ADMIN' | 'USER' | 'CHA' | 'MANAGER'
   });
 
   useEffect(() => {
@@ -185,13 +185,15 @@ export const UserManagement = () => {
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={formData.role} onValueChange={(value: 'ADMIN' | 'USER') => setFormData({ ...formData, role: value })}>
+                <Select value={formData.role} onValueChange={(value: 'ADMIN' | 'USER' | 'MANAGER') => setFormData({ ...formData, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="USER">User</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+
                   </SelectContent>
                 </Select>
               </div>
