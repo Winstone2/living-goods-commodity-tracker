@@ -626,6 +626,7 @@ export const Reports = () => {
 
  const processReportData = (records: RecordData[]): ProcessedReportData[] => {
   const groupedByCU = records.reduce((acc, record) => {
+    console.log('Processing record for inspections:', record);
     const cuId = record.communityUnitId;
 
     if (!acc[cuId]) {
