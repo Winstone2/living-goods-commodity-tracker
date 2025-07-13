@@ -160,7 +160,7 @@ export const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions
       {user.role === 'ADMIN' && (
         <Card>
           <CardHeader>
@@ -196,7 +196,7 @@ export const Dashboard = () => {
         </CardContent>
       </Card>
 
-      )}
+      )} */}
 
       {/* CHP Records Table - Only for Admins */}
       {user?.role === 'ADMIN' && (

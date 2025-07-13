@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Home, Package, BarChart3, Users, Settings, Menu, X } from 'lucide-react';
+import { LogOut, Home, Package, BarChart3, Users, Settings, Menu, X, BadgeCheck } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
 import { toast } from 'sonner';
@@ -47,7 +47,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Admin-only
   ...(user?.role === 'ADMIN' ? [
     { icon: Users, label: 'User Management', path: '/admin/users' },
-    { icon: Users, label: 'Management', path: '/management' },
+    { icon: BadgeCheck, label: 'Management', path: '/management' },
+    { icon: Users, label: 'Community Units', path: '/community-units' },
+    { icon: BarChart3, label: 'Reports', path: '/reports' },
+
+
     // { icon: Settings, label: 'Settings', path: '/admin/settings' }
   ] : [])
 ];
