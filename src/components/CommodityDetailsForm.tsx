@@ -497,7 +497,7 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
                   </div>
 
                   <div>
-                    <Label htmlFor={`${commodityId}-stockOnHand`}>Stock on Hand *</Label>
+                    <Label htmlFor={`${commodityId}-stockOnHand`}>Carry Forward From Prev Month (Opening Balance) *</Label>
                     <Input
                       id={`${commodityId}-stockOnHand`}
                       type="number"
