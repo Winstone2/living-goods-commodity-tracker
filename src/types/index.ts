@@ -6,7 +6,7 @@ export * from './commodity-record';
 export interface User {
   id: string;
   username: string;
-  role: 'ADMIN' | 'USER' | 'CHA';
+  role: 'ADMIN' | 'USER' | 'CHA' | 'MANAGER';
   createdAt: Date;
   token?: string; // Optional for legacy support
 }

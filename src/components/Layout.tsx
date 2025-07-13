@@ -30,17 +30,27 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const navigationItems = [
+ const navigationItems = [
+  // Always visible to ADMIN and CHA
+  ...(user?.role !== 'MANAGER' ? [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Package, label: 'Inventory', path: '/inventory' },
-    ...(user?.role === 'ADMIN' ? [
-      { icon: BarChart3, label: 'Reports', path: '/reports' },
-      { icon: Users, label: 'User Management', path: '/admin/users' },
-      //management
-      { icon: Users, label: 'Management', path: '/management' },
-      // { icon: Settings, label: 'Settings', path: '/admin/settings' }
-    ] : [])
-  ];
+  ] : []),
+
+  // Manager role: dashboard + reports ONLY
+  ...(user?.role === 'MANAGER' ? [
+    { icon: Home, label: 'Dashboard', path: '/dashboard' },
+    { icon: BarChart3, label: 'Reports', path: '/reports' }
+  ] : []),
+
+  // Admin-only
+  ...(user?.role === 'ADMIN' ? [
+    { icon: Users, label: 'User Management', path: '/admin/users' },
+    { icon: Users, label: 'Management', path: '/management' },
+    // { icon: Settings, label: 'Settings', path: '/admin/settings' }
+  ] : [])
+];
+
   
   const handleNavigation = (path: string) => {
     navigate(path);
