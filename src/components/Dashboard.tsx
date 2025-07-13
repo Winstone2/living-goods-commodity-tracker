@@ -161,11 +161,12 @@ export const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {user.role === 'ADMIN' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button 
               onClick={() => navigate('/inventory')}
@@ -195,7 +196,9 @@ export const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Collapsible CHP Table - Only visible to ADMIN */}
+      )}
+
+      {/* CHP Records Table - Only for Admins */}
       {user?.role === 'ADMIN' && (
         <CollapsibleCHPTable />
       )}
