@@ -41,7 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ...(user?.role === 'MANAGER' ? [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
-    { icon: BarChart3, label: 'Community Unit', path: '/community-units' }
+    { icon: BarChart3, label: 'Community Units', path: '/community-units' }
   ] : []),
 
   // Admin-only
