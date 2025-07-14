@@ -363,7 +363,7 @@ const ChpBulkUpload = () => {
                   Excel file should contain columns: <strong>fullName</strong> and <strong>phoneNumber</strong>
                   <br />
                   <span className="text-sm text-muted-foreground mt-1 block">
-                    Note: Email (admin@gmail.com), password (admin@123), and role (CHP) are auto-assigned. Username will be the full name.
+                    {/* Note: Email (admin@gmail.com), password (admin@123), and role (CHP) are auto-assigned. Username will be the full name. */}
                   </span>
                 </AlertDescription>
               </Alert>
