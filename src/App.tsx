@@ -9,6 +9,8 @@ import { LoginForm } from "@/components/LoginForm";
 import { Layout } from "@/components/Layout";
 import { Dashboard } from "@/components/Dashboard";
 import { CHADashboard } from "@/components/CHADashboard";
+import ChpBulkUpload from "@/components/ChpBulkUpload";
+
 
 import { Inventory } from "@/pages/Inventory";
 import { Reports } from "@/pages/Reports";
@@ -86,6 +88,11 @@ const AppRoutes = () => {
       <Route path="/management" element={
         <ProtectedRoute>
           <Management />
+        </ProtectedRoute>
+      } />
+      <Route path="/chp-bulk-upload" element={
+        <ProtectedRoute>
+          <ChpBulkUpload />
         </ProtectedRoute>
       } />
 
