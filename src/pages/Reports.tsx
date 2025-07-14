@@ -207,7 +207,7 @@ export const Reports = () => {
           'Facility': item.facility,
           'Community Unit': item.communityUnit,
           'Commodity': commodity.name,
-          'Stock on Hand': commodity.stockOnHand,
+          'Opening Balance': commodity.stockOnHand,
           'Quantity Issued': commodity.issued,
           'Quantity Consumed': commodity.consumed,
           'Quantity Expired': commodity.expired || 'N/A', // Added missing field
@@ -628,9 +628,7 @@ export const Reports = () => {
  const processReportData = (records: RecordData[]): ProcessedReportData[] => {
   const groupedByCU = records.reduce((acc, record) => {
     const cuId = record.communityUnitId;
-
     if (!acc[cuId]) {
-      
       acc[cuId] = {
         id: cuId.toString(),
         communityUnit: record.communityUnitName,
