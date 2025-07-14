@@ -29,6 +29,7 @@ export interface CommunityUnit {
   chpId: number | null; // Add this field for CHP ID
   stockLevel: number | null; // Add this field for stock level
   createdAt: string;
+  SubCounty: number;
 }
 
 export interface Commodity {

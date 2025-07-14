@@ -623,13 +623,14 @@ export const Reports = () => {
     setFilteredFacilities(getFilteredFacilities());
     setFilteredCommunityUnits(getFilteredCommunityUnits());
   }, [filters.county, filters.subCounty, filters.ward, filters.facility, subCounties, wards, facilities, communityUnits]);
+  
 
  const processReportData = (records: RecordData[]): ProcessedReportData[] => {
   const groupedByCU = records.reduce((acc, record) => {
-    console.log('Processing record for inspections:', record);
     const cuId = record.communityUnitId;
 
     if (!acc[cuId]) {
+      
       acc[cuId] = {
         id: cuId.toString(),
         communityUnit: record.communityUnitName,
@@ -955,7 +956,7 @@ export const Reports = () => {
             <TableHead>Location Details</TableHead>
             <TableHead>Commodity Details</TableHead>
             <TableHead>Stock Status</TableHead>
-            {/* <TableHead>Created By</TableHead> */}
+            <TableHead>Created By</TableHead>
             <TableHead>Last Update</TableHead>
           </TableRow>
         </TableHeader>
@@ -999,9 +1000,9 @@ export const Reports = () => {
                   <span className="text-green-600">All In Stock</span>
                 )}
               </TableCell>
-              {/* <TableCell>
+              <TableCell>
                 {item.createdByUsername || 'N/A'}
-              </TableCell> */}
+              </TableCell>
               <TableCell>{item.lastUpdate}</TableCell>
             </TableRow>
           ))}
