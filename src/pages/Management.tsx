@@ -351,7 +351,7 @@ export const Management = () => {
                     <SelectContent>
                       {chas.map((cha) => (
                         <SelectItem key={cha.id} value={cha.id.toString()}>
-                          {cha.username} ({cha.email})
+                          {cha.username}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -641,7 +641,7 @@ export const Management = () => {
                     <TableHead>CHA Name</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>CHPs Count</TableHead>
-                    <TableHead>Stock Level</TableHead>
+                    {/* <TableHead>Stock Level</TableHead> */}
                     <TableHead>Created</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -662,11 +662,11 @@ export const Management = () => {
                           {unit.totalCHPsCounted}/{unit.totalChps}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <Badge variant={unit.stockLevel > 10 ? "default" : "destructive"}>
                           {unit.stockLevel}
                         </Badge>
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(unit.createdAt).toLocaleDateString()}
                       </TableCell>
