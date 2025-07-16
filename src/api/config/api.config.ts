@@ -17,9 +17,19 @@ BASE_URL: 'http://127.0.0.1:9000/api',
     CREATE: '/users',
     UPDATE: (id: number) => `/users/${id}`,
     DELETE: (id: number) => `/users/${id}`,
+    // CHPS: '/users/chps',
+    // CHAS: '/users/chas',
+    // MAP_CHA_CHP: '/users/map-cha-chp',
+
     CHPS: '/users/chps',
     CHAS: '/users/chas',
-    MAP_CHA_CHP: '/users/map-cha-chp'
+    MAP_CHA_CHP: '/users/map-cha-chp',
+    CHA_TO_CU: '/users/cha-to-cu',
+    CHP_TO_CU: '/users/chp-to-cu',
+    CHA_CUS_DETAILS: (chaId: number) => `/api/users/cha/${chaId}/cus/details`,
+    CU_CHPS_DETAILS: (cuId: number) => `/api/users/cu/${cuId}/chps/details`
+
+    
   },
   COMMUNITY_UNIT: '/community-units',
 

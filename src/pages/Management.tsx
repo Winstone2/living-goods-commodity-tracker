@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Users, UserCheck, Building, MapPin, Link, Unlink, 
-  Plus, AlertCircle, CheckCircle, Loader
+  Plus, AlertCircle, CheckCircle, Loader, Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { API_CONFIG } from '@/api/config/api.config';
@@ -43,10 +43,26 @@ interface CommunityUnit {
   totalCHPsCounted: number;
 }
 
-interface MappingRequest {
+interface CHAToCURequest {
   chaId: number;
+  communityUnitId: number;
+}
+
+interface CHPToCURequest {
   chpId: number;
   communityUnitId: number;
+}
+
+interface CUDetails {
+  id: number;
+  name: string;
+}
+
+interface CHPDetails {
+  id: number;
+  username: string;
+  email: string;
+  phoneNumber: string | null;
 }
 
 export const Management = () => {
@@ -56,12 +72,21 @@ export const Management = () => {
   const [loading, setLoading] = useState(true);
   const [mappingLoading, setMappingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCHADialogOpen, setIsCHADialogOpen] = useState(false);
+  const [isCHPDialogOpen, setIsCHPDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
   // Mapping form state
   const [selectedCHA, setSelectedCHA] = useState<string>('');
   const [selectedCHP, setSelectedCHP] = useState<string>('');
   const [selectedCommunityUnit, setSelectedCommunityUnit] = useState<string>('');
+  
+  // View details state
+  const [selectedCHAForView, setSelectedCHAForView] = useState<string>('');
+  const [selectedCUForView, setSelectedCUForView] = useState<string>('');
+  const [chaCUs, setCHACUs] = useState<CUDetails[]>([]);
+  const [cuCHPs, setCUCHPs] = useState<CHPDetails[]>([]);
+  const [viewLoading, setViewLoading] = useState(false);
   
   const { toast } = useToast();
 
@@ -111,11 +136,11 @@ export const Management = () => {
     }
   };
 
-  const handleMapCHAToCHP = async () => {
-    if (!selectedCHA || !selectedCHP || !selectedCommunityUnit) {
+  const handleMapCHAToCU = async () => {
+    if (!selectedCHA || !selectedCommunityUnit) {
       toast({
         title: "Validation Error",
-        description: "Please select CHA, CHP, and Community Unit",
+        description: "Please select CHA and Community Unit",
         variant: "destructive"
       });
       return;
@@ -124,13 +149,12 @@ export const Management = () => {
     try {
       setMappingLoading(true);
       
-      const mappingData: MappingRequest = {
+      const mappingData: CHAToCURequest = {
         chaId: parseInt(selectedCHA),
-        chpId: parseInt(selectedCHP),
         communityUnitId: parseInt(selectedCommunityUnit)
       };
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.USERS.MAP_CHA_CHP}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cha-to-cu`, {
         method: 'POST',
         headers: {
           'accept': '*/*',
@@ -140,20 +164,19 @@ export const Management = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create mapping');
+        throw new Error('Failed to create CHA to CU mapping');
       }
 
       toast({
         title: "Success",
-        description: "CHA-CHP mapping created successfully",
+        description: "CHA to Community Unit mapping created successfully",
         variant: "default"
       });
 
       // Reset form and close dialog
       setSelectedCHA('');
-      setSelectedCHP('');
       setSelectedCommunityUnit('');
-      setIsDialogOpen(false);
+      setIsCHADialogOpen(false);
       
       // Refresh data
       await fetchAllData();
@@ -165,6 +188,113 @@ export const Management = () => {
       });
     } finally {
       setMappingLoading(false);
+    }
+  };
+
+  const handleMapCHPToCU = async () => {
+    if (!selectedCHP || !selectedCommunityUnit) {
+      toast({
+        title: "Validation Error",
+        description: "Please select CHP and Community Unit",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setMappingLoading(true);
+      
+      const mappingData: CHPToCURequest = {
+        chpId: parseInt(selectedCHP),
+        communityUnitId: parseInt(selectedCommunityUnit)
+      };
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/chp-to-cu`, {
+        method: 'POST',
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(mappingData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create CHP to CU mapping');
+      }
+
+      toast({
+        title: "Success",
+        description: "CHP to Community Unit mapping created successfully",
+        variant: "default"
+      });
+
+      // Reset form and close dialog
+      setSelectedCHP('');
+      setSelectedCommunityUnit('');
+      setIsCHPDialogOpen(false);
+      
+      // Refresh data
+      await fetchAllData();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create mapping",
+        variant: "destructive"
+      });
+    } finally {
+      setMappingLoading(false);
+    }
+  };
+
+  const fetchCHACUs = async (chaId: string) => {
+    if (!chaId) return;
+    
+    try {
+      setViewLoading(true);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cha/${chaId}/cus/details`, {
+        headers: { 'accept': '*/*' }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch CHA Community Units');
+      }
+
+      const data = await response.json();
+      setCHACUs(data || []);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch CHA Community Units",
+        variant: "destructive"
+      });
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  const fetchCUCHPs = async (cuId: string) => {
+    if (!cuId) return;
+    
+    try {
+      setViewLoading(true);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cu/${cuId}/chps/details`, {
+        headers: { 'accept': '*/*' }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch Community Unit CHPs');
+      }
+
+      const data = await response.json();
+      setCUCHPs(data || []);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch Community Unit CHPs",
+        variant: "destructive"
+      });
+    } finally {
+      setViewLoading(false);
     }
   };
 
@@ -195,90 +325,256 @@ export const Management = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User & Community Management</h1>
           <p className="text-muted-foreground">
-            Manage CHA, CHP relationships and Community Unit assignments
+            Manage CHA and CHP assignments to Community Units
           </p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Link className="w-4 h-4" />
-              Create New Mapping
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Map CHA to CHP</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Select CHA</label>
-                <Select value={selectedCHA} onValueChange={setSelectedCHA}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a CHA" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {chas.map((cha) => (
-                      <SelectItem key={cha.id} value={cha.id.toString()}>
-                        {cha.username} ({cha.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Select CHP</label>
-                <Select value={selectedCHP} onValueChange={setSelectedCHP}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a CHP" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {chps.map((chp) => (
-                      <SelectItem key={chp.id} value={chp.id.toString()}>
-                        {chp.username} ({chp.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Select Community Unit</label>
-                <Select value={selectedCommunityUnit} onValueChange={setSelectedCommunityUnit}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a Community Unit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {communityUnits.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.id.toString()}>
-                        {unit.communityUnitName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button 
-                onClick={handleMapCHAToCHP} 
-                disabled={mappingLoading || !selectedCHA || !selectedCHP || !selectedCommunityUnit}
-                className="w-full"
-              >
-                {mappingLoading ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin mr-2" />
-                    Creating Mapping...
-                  </>
-                ) : (
-                  <>
-                    <Link className="w-4 h-4 mr-2" />
-                    Create Mapping
-                  </>
-                )}
+        <div className="flex gap-2">
+          <Dialog open={isCHADialogOpen} onOpenChange={setIsCHADialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Link className="w-4 h-4" />
+                Map CHA to CU
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Map CHA to Community Unit</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Select CHA</label>
+                  <Select value={selectedCHA} onValueChange={setSelectedCHA}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a CHA" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chas.map((cha) => (
+                        <SelectItem key={cha.id} value={cha.id.toString()}>
+                          {cha.username} ({cha.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Select Community Unit</label>
+                  <Select value={selectedCommunityUnit} onValueChange={setSelectedCommunityUnit}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a Community Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {communityUnits.map((unit) => (
+                        <SelectItem key={unit.id} value={unit.id.toString()}>
+                          {unit.communityUnitName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  onClick={handleMapCHAToCU} 
+                  disabled={mappingLoading || !selectedCHA || !selectedCommunityUnit}
+                  className="w-full"
+                >
+                  {mappingLoading ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin mr-2" />
+                      Creating Mapping...
+                    </>
+                  ) : (
+                    <>
+                      <Link className="w-4 h-4 mr-2" />
+                      Create Mapping
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCHPDialogOpen} onOpenChange={setIsCHPDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Link className="w-4 h-4" />
+                Map CHP to CU
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Map CHP to Community Unit</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Select CHP</label>
+                  <Select value={selectedCHP} onValueChange={setSelectedCHP}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a CHP" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chps.map((chp) => (
+                        <SelectItem key={chp.id} value={chp.id.toString()}>
+                          {chp.username} ({chp.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Select Community Unit</label>
+                  <Select value={selectedCommunityUnit} onValueChange={setSelectedCommunityUnit}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a Community Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {communityUnits.map((unit) => (
+                        <SelectItem key={unit.id} value={unit.id.toString()}>
+                          {unit.communityUnitName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  onClick={handleMapCHPToCU} 
+                  disabled={mappingLoading || !selectedCHP || !selectedCommunityUnit}
+                  className="w-full"
+                >
+                  {mappingLoading ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin mr-2" />
+                      Creating Mapping...
+                    </>
+                  ) : (
+                    <>
+                      <Link className="w-4 h-4 mr-2" />
+                      Create Mapping
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" className="flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                View Relationships
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>View CHA-CU and CU-CHP Relationships</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                {/* CHA to CUs */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">CHA Community Units</h3>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Select CHA</label>
+                    <Select 
+                      value={selectedCHAForView} 
+                      onValueChange={(value) => {
+                        setSelectedCHAForView(value);
+                        fetchCHACUs(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a CHA" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chas.map((cha) => (
+                          <SelectItem key={cha.id} value={cha.id.toString()}>
+                            {cha.username} ({cha.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedCHAForView && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-2">Community Units:</h4>
+                      {viewLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader className="w-4 h-4 animate-spin" />
+                          <span className="text-sm text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : chaCUs.length > 0 ? (
+                        <div className="space-y-2">
+                          {chaCUs.map((cu) => (
+                            <Badge key={cu.id} variant="outline">
+                              {cu.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No community units found</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* CU to CHPs */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Community Unit CHPs</h3>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Select Community Unit</label>
+                    <Select 
+                      value={selectedCUForView} 
+                      onValueChange={(value) => {
+                        setSelectedCUForView(value);
+                        fetchCUCHPs(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a Community Unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {communityUnits.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id.toString()}>
+                            {unit.communityUnitName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedCUForView && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-medium mb-2">CHPs:</h4>
+                      {viewLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader className="w-4 h-4 animate-spin" />
+                          <span className="text-sm text-muted-foreground">Loading...</span>
+                        </div>
+                      ) : cuCHPs.length > 0 ? (
+                        <div className="space-y-2">
+                          {cuCHPs.map((chp) => (
+                            <div key={chp.id} className="flex justify-between items-center p-2 border rounded">
+                              <div>
+                                <p className="font-medium">{chp.username}</p>
+                                <p className="text-sm text-muted-foreground">{chp.email}</p>
+                              </div>
+                              <Badge variant="outline">CHP</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No CHPs found</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Summary Cards */}

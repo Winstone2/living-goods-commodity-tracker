@@ -126,6 +126,7 @@ const ChpBulkUpload = () => {
           setValidationResult(result);
           setFile(uploadedFile);
           setUploadProgress(100);
+          setIsRegistrationComplete(false); // Reset registration status
 
           toast({
             title: "File processed successfully",
@@ -182,11 +183,11 @@ const ChpBulkUpload = () => {
 
   const registerSingleChp = async (chpData: ChpData): Promise<{ success: boolean; error?: string }> => {
     const registrationData: ApiRegistrationRequest = {
-      username: chpData.fullName, // Use full name as username
-      email: "admin@gmail.com", // Hard-coded email
+      username: chpData.fullName,
+      email: "admin@gmail.com",
       phoneNumber: chpData.phoneNumber,
-      password: "admin@123", // Hard-coded password
-      role: "CHP" // Hard-coded role
+      password: "admin@123",
+      role: "CHP"
     };
 
     try {
@@ -302,7 +303,7 @@ const ChpBulkUpload = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       <Card className="shadow-medical">
         <CardHeader className="bg-gradient-upload">
           <CardTitle className="flex items-center gap-2">
@@ -361,10 +362,6 @@ const ChpBulkUpload = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   Excel file should contain columns: <strong>fullName</strong> and <strong>phoneNumber</strong>
-                  <br />
-                  <span className="text-sm text-muted-foreground mt-1 block">
-                    {/* Note: Email (admin@gmail.com), password (admin@123), and role (CHP) are auto-assigned. Username will be the full name. */}
-                  </span>
                 </AlertDescription>
               </Alert>
             </div>
@@ -498,7 +495,7 @@ const ChpBulkUpload = () => {
                   <Button
                     onClick={handleBulkRegistration}
                     disabled={isProcessing || validationResult.validCount === 0}
-                    className="bg-gradient-success shadow-success"
+                    className="bg-success hover:bg-success/90 text-white"
                   >
                     {isProcessing ? "Registering..." : "Register CHPs"}
                   </Button>
@@ -530,7 +527,7 @@ const ChpBulkUpload = () => {
                   </div>
                 </div>
                 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex gap-2 bg-success/10 p-4 rounded-md">
                   <Button onClick={handleReset} variant="outline">
                     Register More CHPs
                   </Button>
