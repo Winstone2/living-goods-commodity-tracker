@@ -416,7 +416,7 @@ export const Management = () => {
                     <SelectContent>
                       {chps.map((chp) => (
                         <SelectItem key={chp.id} value={chp.id.toString()}>
-                          {chp.username} ({chp.email})
+                          {chp.username}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -490,7 +490,7 @@ export const Management = () => {
                       <SelectContent>
                         {chas.map((cha) => (
                           <SelectItem key={cha.id} value={cha.id.toString()}>
-                            {cha.username} ({cha.email})
+                            {cha.username} 
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -559,7 +559,7 @@ export const Management = () => {
                             <div key={chp.id} className="flex justify-between items-center p-2 border rounded">
                               <div>
                                 <p className="font-medium">{chp.username}</p>
-                                <p className="text-sm text-muted-foreground">{chp.email}</p>
+                                {/* <p className="text-sm text-muted-foreground">{chp.email}</p> */}
                               </div>
                               <Badge variant="outline">CHP</Badge>
                             </div>

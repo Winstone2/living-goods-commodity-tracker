@@ -108,6 +108,8 @@ export const CHADashboard = () => {
   }
 
   const responseData = await response.json();
+  console.log("CHA Dashboard Response:", responseData);
+  
 
   const mappedData: DashboardData = {
     chps: (responseData?.chps || []).map((chp: any) => ({
