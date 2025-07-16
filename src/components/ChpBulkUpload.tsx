@@ -182,9 +182,19 @@ const ChpBulkUpload = () => {
   };
 
   const registerSingleChp = async (chpData: ChpData): Promise<{ success: boolean; error?: string }> => {
+
+     const normalizedUsername = chpData.fullName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '.');
+
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+  const email = `${normalizedUsername}${randomSuffix}@chp.org`; // Or use your domain
+
     const registrationData: ApiRegistrationRequest = {
       username: chpData.fullName,
-      email: "admin@gmail.com",
+      email: email,
       phoneNumber: chpData.phoneNumber,
       password: "admin@123",
       role: "CHP"
