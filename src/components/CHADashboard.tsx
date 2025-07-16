@@ -93,27 +93,61 @@ export const CHADashboard = () => {
         setLoading(false);
         return;
       }
+      
 
-      try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.CHA.CHPS(user.id)}`, {
-          headers: {
-            'Accept': '*/*',
-            'Authorization': AUTH_HEADER
-          }
-        });
+    try {
+  const response = await fetch(`${API_CONFIG.BASE_URL}/users/cha/${user.id}/chps`, {
+    headers: {
+      'Accept': '*/*',
+      'Authorization': AUTH_HEADER
+    }
+  });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch CHP data');
-        }
+  if (!response.ok) {
+    throw new Error('Failed to fetch CHP data');
+  }
 
-        const responseData = await response.json();
-        setData(responseData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+  const responseData = await response.json();
+
+  const mappedData: DashboardData = {
+    chps: (responseData?.chps || []).map((chp: any) => ({
+      chpId: chp.chpId,
+      chpUsername: chp.chpUsername,
+      chpEmail: chp.chpEmail,
+      commodityRecords: chp.commodityRecords || [],
+      stats: chp.stats || {
+        totalRecords: 0,
+        totalIssued: 0,
+        totalConsumed: 0,
+        totalExpired: 0,
+        totalDamaged: 0,
+        totalOutOfStock: 0,
+        commoditiesToReorder: [],
+        commoditiesInExcess: [],
+        slowMovingCommodities: [],
+        outOfStockCommodities: [],
+        advice: '',
+        forecast: {}
       }
-    };
+    })),
+    stats: responseData?.stats || {
+      totalRecords: 0,
+      totalIssued: 0,
+      totalConsumed: 0,
+      totalExpired: 0,
+      totalDamaged: 0,
+      totalClosingBalance: 0
+    },
+    advice: responseData?.advice || ''
+  };
+
+  setData(mappedData);
+} catch (err) {
+  setError(err instanceof Error ? err.message : 'An error occurred');
+} finally {
+  setLoading(false);
+}
+    }
 
     fetchCHPData();
   }, [user?.id]);
