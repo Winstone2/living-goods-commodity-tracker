@@ -5,21 +5,55 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { CommunityUnit } from '@/types';
-import { Location, LocationDropdowns } from '@/types/location';
-import { API_CONFIG } from '@/api/config/api.config';
-import { useAuth } from '@/contexts/AuthContext';
-import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 const STORAGE_KEYS = {
   COMMUNITY_UNIT_ID: 'livingGoods_communityUnitId',
   SELECTED_COMMODITIES: 'livingGoods_selectedCommodities'
 } as const;
 
+// Types
+interface CommunityUnit {
+  id: number;
+  communityUnitName: string;
+  county: string;
+  subCounty: string;
+  ward: string;
+  linkFacility: string;
+  countyId: number;
+  subCountyId: number;
+  wardId: number;
+  linkFacilityId: number;
+  createdBy?: number | null;
+  createdAt?: string;
+}
+
+interface LocationDropdowns {
+  counties: Array<{ id: number; name: string; countyName: string }>;
+  subCounties: Array<{ id: number; name: string; parentIds: number[] }>;
+  wards: Array<{ id: number; name: string; wardName: string; parentIds: number[] }>;
+  facilities: Array<{ id: number; name: string; parentIds: number[] }>;
+}
+
 interface CommunityUnitFormProps {
   onSubmit: (data: Partial<CommunityUnit> & { chpId?: number }) => void;
   initialData?: Partial<CommunityUnit>;
 }
+
+// Mock API config - replace with your actual API config
+const API_CONFIG = {
+  BASE_URL: 'http://localhost:9000/api',
+  COMMUNITY_UNITS: {
+    LIST: '/community-units'
+  }
+};
+
+// Mock auth config - replace with your actual auth
+const AUTH_HEADER = 'Bearer your-token-here';
+
+// Mock user context - replace with your actual auth context
+const useAuth = () => ({
+  user: { id: 1, role: 'CHA' } // Mock user
+});
 
 export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, initialData }) => {
   const { user } = useAuth();
@@ -41,8 +75,9 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
   const [communityUnits, setCommunityUnits] = useState<CommunityUnit[]>([]);
   const [selectedCommunityUnitId, setSelectedCommunityUnitId] = useState<number | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
-  const [chps, setChps] = useState<{ id: number; Username: string; Email: string; chpUsername: string; chpEmail: string }[]>([]);
+  const [chps, setChps] = useState<{ id: number; username: string; email: string; phoneNumber: string | null }[]>([]);
   const [selectedChpId, setSelectedChpId] = useState<number | null>(null);
+  const [loadingChps, setLoadingChps] = useState(false);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -92,9 +127,14 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     }
   }, [user?.role]);
 
-  const fetchChps = async (chaId: number) => {
+  // Updated fetchChps function to use the new endpoint and response format
+  const fetchChps = async (communityUnitId: number) => {
+    setLoadingChps(true);
+    setChps([]); // Clear previous CHPs
+    setSelectedChpId(null); // Clear previous selection
+    
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cha/${chaId}/chps`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/cu/${communityUnitId}/chps/details`, {
         headers: {
           'Accept': '*/*',
           'Authorization': AUTH_HEADER,
@@ -108,40 +148,46 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
       const data = await response.json();
       console.log("✅ CHPs data received:", data);
 
-      // Extract and map CHPs
-      const mappedCHPs = data.chps.map((chp: any) => ({
-        id: chp.chpId,
-        Username: chp.chpUsername,
-        Email: chp.chpEmail,
-        chpUsername: chp.chpUsername,
-        chpEmail: chp.chpEmail,
-        stats: chp.stats,
-        recordCount: chp.commodityRecords?.length ?? 0,
+      // Map CHPs from the new response format - data is directly an array
+      const mappedCHPs = data.map((chp: any) => ({
+        id: chp.id,
+        username: chp.username,
+        email: chp.email,
+        phoneNumber: chp.phoneNumber,
       }));
 
       setChps(mappedCHPs);
 
       toast({
         title: "Success",
-        description: `Loaded ${mappedCHPs.length} CHPs`,
+        description: `Loaded ${mappedCHPs.length} CHPs for this Community Unit`,
       });
 
     } catch (error) {
       console.error("❌ CHP fetch error:", error);
       toast({
         title: "Error",
-        description: "Failed to load CHPs. Please try again.",
+        description: "Failed to load CHPs for this Community Unit. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingChps(false);
     }
   };
 
-  // Fetch CHPs when user is CHA
-  useEffect(() => {
-    if (user?.role === 'CHA' && user.id) {
-      fetchChps(user.id);
+  // Handle Community Unit selection change
+  const handleCommunityUnitChange = (value: string) => {
+    const communityUnitId = Number(value);
+    setSelectedCommunityUnitId(communityUnitId);
+    
+    // Fetch CHPs for the selected Community Unit
+    if (communityUnitId) {
+      fetchChps(communityUnitId);
+    } else {
+      setChps([]);
+      setSelectedChpId(null);
     }
-  }, [user]);
+  };
 
   if (loading) {
     return <div>Loading location data...</div>;
@@ -412,10 +458,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
               <Label htmlFor="communityUnitSelect">Select Community Unit</Label>
               <Select
                 value={selectedCommunityUnitId ? selectedCommunityUnitId.toString() : ""}
-                onValueChange={(value) => {
-                  const cu = communityUnits.find(u => u.id.toString() === value);
-                  setSelectedCommunityUnitId(cu?.id ?? null);
-                }}
+                onValueChange={handleCommunityUnitChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Community Unit" />
@@ -430,7 +473,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
               </Select>
             </div>
 
-            {selectedCommunityUnitId ? (
+            {selectedCommunityUnitId && (
               <div className="p-4 mb-4 bg-muted/20 rounded border">
                 {(() => {
                   const cu = communityUnits.find(u => u.id === selectedCommunityUnitId);
@@ -449,30 +492,40 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                           <span className="font-medium">Sub-County:</span> {subCounty}
                         </div>
                       </div>
+                      
                       <div className="mt-4">
                         <Label htmlFor="chpSelect">Select CHP *</Label>
-                        <Select
-                          value={selectedChpId ? selectedChpId.toString() : ""}
-                          onValueChange={val => {
-                            setSelectedChpId(Number(val));
-                            localStorage.setItem('livingGoods_selectedChpId', val);
-                            sessionStorage.setItem('livingGoods_selectedChpId', val);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select CHP" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {chps
-                              .filter(chp => chp && chp.id !== undefined && chp.chpUsername && chp.chpEmail)
-                              .map(chp => (
+                        {loadingChps ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            Loading CHPs for this Community Unit...
+                          </div>
+                        ) : chps.length > 0 ? (
+                          <Select
+                            value={selectedChpId ? selectedChpId.toString() : ""}
+                            onValueChange={val => {
+                              setSelectedChpId(Number(val));
+                              localStorage.setItem('livingGoods_selectedChpId', val);
+                              sessionStorage.setItem('livingGoods_selectedChpId', val);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select CHP" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {chps.map(chp => (
                                 <SelectItem key={chp.id} value={chp.id.toString()}>
-                                  {chp.chpUsername} ({chp.chpEmail})
+                                  {chp.username} ({chp.email})
                                 </SelectItem>
                               ))}
-                          </SelectContent>
-                        </Select>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="p-4 text-center text-muted-foreground border rounded">
+                            No CHPs available for this Community Unit
+                          </div>
+                        )}
                       </div>
+                      
                       <div className="flex flex-col sm:flex-row gap-2 mt-6">
                         <Button
                           type="button"
@@ -500,6 +553,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                           onClick={() => {
                             setSelectedCommunityUnitId(null);
                             setSelectedChpId(null);
+                            setChps([]);
                             localStorage.removeItem('livingGoods_selectedChpId');
                             sessionStorage.removeItem('livingGoods_selectedChpId');
                           }}
@@ -511,38 +565,36 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                   );
                 })()}
               </div>
-            ) : (
-              step === 2 && (
-                <div className="space-y-4">
-                  <Label htmlFor="chpSelect">Select CHP *</Label>
-                  <Select
-                    value={selectedChpId ? selectedChpId.toString() : ""}
-                    onValueChange={val => setSelectedChpId(Number(val))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select CHP" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {chps
-                        .filter(chp => chp && chp.id !== undefined && chp.chpUsername && chp.chpEmail)
-                        .map(chp => (
-                          <SelectItem key={chp.id} value={chp.id.toString()}>
-                            {chp.chpUsername} ({chp.chpEmail})
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    className="w-full"
-                    disabled={!selectedChpId}
-                    onClick={() => {
-                      onSubmit({ ...formData, chpId: selectedChpId });
-                    }}
-                  >
-                    Proceed to Commodity Record
-                  </Button>
-                </div>
-              )
+            )}
+
+            {step === 2 && !selectedCommunityUnitId && (
+              <div className="space-y-4">
+                <Label htmlFor="chpSelect">Select CHP *</Label>
+                <Select
+                  value={selectedChpId ? selectedChpId.toString() : ""}
+                  onValueChange={val => setSelectedChpId(Number(val))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select CHP" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chps.map(chp => (
+                      <SelectItem key={chp.id} value={chp.id.toString()}>
+                        {chp.username} ({chp.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="w-full"
+                  disabled={!selectedChpId}
+                  onClick={() => {
+                    onSubmit({ ...formData, chpId: selectedChpId });
+                  }}
+                >
+                  Proceed to Commodity Record
+                </Button>
+              </div>
             )}
           </>
         )}
