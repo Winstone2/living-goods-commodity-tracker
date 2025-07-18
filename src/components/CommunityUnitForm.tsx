@@ -50,14 +50,9 @@ const API_CONFIG = {
 // Mock auth config - replace with your actual auth
 const AUTH_HEADER = 'Bearer your-token-here';
 
-// Mock user context - replace with your actual auth context
-const useAuth = () => ({
-  user: { id: 1, role: 'CHA' } // Mock user
-});
-
 export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, initialData }) => {
-  const { user } = useAuth();
   const { toast } = useToast();
+  const [user, setUser] = useState<{ id: number; role: string } | null>(null);
   const [dropdowns, setDropdowns] = useState<LocationDropdowns | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState({
@@ -78,6 +73,20 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
   const [chps, setChps] = useState<{ id: number; username: string; email: string; phoneNumber: string | null }[]>([]);
   const [selectedChpId, setSelectedChpId] = useState<number | null>(null);
   const [loadingChps, setLoadingChps] = useState(false);
+
+  // Get user from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        console.log("User from localStorage:", userData);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -106,17 +115,27 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     };
 
     const fetchUnits = async () => {
+      const storedUser = localStorage.getItem('user');
+      const chaId = storedUser ? JSON.parse(storedUser).id : null;
+
+      console.log("CHA ID from localStorage:", chaId);
+
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.COMMUNITY_UNITS.LIST}`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/users/community-units/for/cha/${chaId}`, {
           headers: {
             'Accept': '*/*',
             'Authorization': AUTH_HEADER
           }
         });
         const data = await response.json();
-        setCommunityUnits(Array.isArray(data.data) ? data.data : []);
+        console.log("✅ Community Units data received:", data);
+        console.log("✅ Setting community units to:", Array.isArray(data) ? data : []);
+        
+        // Fix: Use data directly, not data.data
+        setCommunityUnits(Array.isArray(data) ? data : []);
       } catch (err) {
-        // Optionally handle error
+        console.error("❌ Error fetching community units:", err);
+        setCommunityUnits([]);
       }
     };
 
@@ -127,7 +146,6 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     }
   }, [user?.role]);
 
-  // Updated fetchChps function to use the new endpoint and response format
   const fetchChps = async (communityUnitId: number) => {
     setLoadingChps(true);
     setChps([]); // Clear previous CHPs
@@ -189,8 +207,8 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     }
   };
 
-  if (loading) {
-    return <div>Loading location data...</div>;
+  if (loading || !user) {
+    return <div>Loading...</div>;
   }
 
   // Filter functions for cascading dropdowns
@@ -347,6 +365,10 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
     }
   };
 
+  console.log("📊 Current community units state:", communityUnits);
+  console.log("📊 Community units length:", communityUnits.length);
+  console.log("📊 Current user:", user);
+
   return (
     <Card>
       <CardHeader>
@@ -472,6 +494,7 @@ export const CommunityUnitForm: React.FC<CommunityUnitFormProps> = ({ onSubmit, 
                 </SelectContent>
               </Select>
             </div>
+
 
             {selectedCommunityUnitId && (
               <div className="p-4 mb-4 bg-muted/20 rounded border">
