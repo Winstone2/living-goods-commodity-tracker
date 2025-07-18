@@ -63,6 +63,7 @@ interface CHP {
   chpId: number;
   chpUsername: string;
   chpEmail: string;
+  phoneNumber?: string;
   commodityRecords: CommodityRecord[];
   stats: CHPStats;
 }
@@ -116,6 +117,7 @@ export const CHADashboard = () => {
       chpId: chp.chpId,
       chpUsername: chp.chpUsername,
       chpEmail: chp.chpEmail,
+      phoneNumber: chp.phoneNumber,
       commodityRecords: chp.commodityRecords || [],
       stats: chp.stats || {
         totalRecords: 0,
@@ -297,7 +299,7 @@ export const CHADashboard = () => {
                     {getStatusIcon(status)}
                     <div>
                       <p className="font-medium">{chp.chpUsername}</p>
-                      <p className="text-sm text-muted-foreground">{chp.chpEmail}</p>
+                      <p className="text-sm text-muted-foreground">{chp.phoneNumber}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -391,7 +393,9 @@ export const CHADashboard = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold">{chp.chpUsername}</h3>
-                    <p className="text-sm text-muted-foreground">{chp.chpEmail}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {chp?.phoneNumber?.trim() ? '+' + chp.phoneNumber : 'Not provided'}
+                    </p>
                   </div>
                   <Badge variant={getStatusColor(getCHPStatus(chp))}>
                     {getCHPStatus(chp).replace('-', ' ').toUpperCase()}
