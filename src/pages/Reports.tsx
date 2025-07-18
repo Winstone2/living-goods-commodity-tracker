@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { API_CONFIG } from '@/api/config/api.config';
 import type { DashboardStats } from '@/types/dashboard';
 
+
 import { SubCounty } from '@/types';
 
 // Add these imports at the top
@@ -29,6 +30,7 @@ import {
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { jsPDF } from "jspdf";
+import 'jspdf-autotable';
 import { AUTH_HEADER } from '@/api/config/auth-headers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -47,17 +49,14 @@ interface County {
 }
 
 interface Ward {
-  id: number;
   name: string;
   subCountyId: number | null;
 }
 
 interface Facility {
-  id: number;
   name: string;
   type: string;
   wardId: number;
-  parentIds?: number[];
 }
 
 interface CommunityUnit {
@@ -92,6 +91,7 @@ interface RecordData {
   consumptionPeriod: number;
   recordDate: string;
   createdByUsername: string | null;
+  // createdByUsername: string | null;
   countyName: string | null;
   subCountyName: string | null;
   wardName: string | null;
@@ -99,15 +99,6 @@ interface RecordData {
   subCountyId: number | null;
   wardId: number | null;
   facilityName: string | null;
-  chaName: string;
-  chp: {
-    id: number;
-    username: string;
-    email: string;
-    phoneNumber: string | null;
-  };
-  earliestExpiryDate?: string | null;
-  quantityToOrder?: number;
 }
 
 interface ProcessedReportData {
@@ -118,9 +109,6 @@ interface ProcessedReportData {
   ward: string;
   facility: string;
   createdByUsername: string | null;
-  chaName: string;
-  chpName: string;
-  chpEmail: string;
 
   commodities: Array<{
     name: string;
@@ -212,19 +200,17 @@ export const Reports = () => {
       // For each commodity in the community unit, create a separate row
       item.commodities.forEach(commodity => {
         exportRows.push({
+        
           'County': item.county,
           'Sub-County': item.subCounty,
           'Ward': item.ward,
           'Facility': item.facility,
           'Community Unit': item.communityUnit,
-          'CHA Name': item.chaName,
-          'CHP Name': item.chpName,
-          // 'CHP Email': item.chpEmail,
           'Commodity': commodity.name,
           'Opening Balance': commodity.stockOnHand,
           'Quantity Issued': commodity.issued,
           'Quantity Consumed': commodity.consumed,
-          'Quantity Expired': commodity.expired || 'N/A',
+          'Quantity Expired': commodity.expired || 'N/A', // Added missing field
           'Quantity Damaged': commodity.damaged,
           'Excess Qty Returned': commodity.returned,
           'Closing Balance': commodity.closing,
@@ -268,23 +254,63 @@ export const Reports = () => {
           break;
         }
         case 'pdf': {
-          // Simple PDF generation without autoTable
-          const doc = new jsPDF('portrait', 'pt', 'a4');
-          
-          doc.setProperties({
-            title: 'Commodity Report',
-            subject: 'Commodity Tracking Report',
-            author: 'Living Goods'
-          });
+          try {
+            const doc = new jsPDF('landscape', 'pt', 'a4');
+            const data = getExportData(getFilteredReportData());
 
-          // Add title and date
-          doc.setFontSize(16);
-          doc.text('Commodity Report', 40, 40);
-          doc.setFontSize(10);
-          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 60);
-          doc.text('For detailed data, please use CSV or Excel export.', 40, 80);
+            doc.setProperties({
+              title: 'Commodity Report',
+              subject: 'Commodity Tracking Report',
+              author: 'Living Goods'
+            });
 
-          doc.save(`${fileName}.pdf`);
+            // Add title and date
+            doc.setFontSize(16);
+            doc.text('Commodity Report', 40, 40);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 60);
+
+            // Configure and add the table
+            doc.autoTable({
+              head: [Object.keys(data[0])],
+              body: data.map(Object.values),
+              startY: 70,
+              styles: {
+                fontSize: 7,
+                cellPadding: 2,
+                overflow: 'linebreak'
+              },
+              headStyles: {
+                fillColor: [63, 131, 248],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+              },
+              columnStyles: {
+                0: { cellWidth: 40 }, // Community Unit
+                1: { cellWidth: 35 }, // County
+                2: { cellWidth: 35 }, // Sub-County
+                3: { cellWidth: 35 }, // Ward
+                4: { cellWidth: 40 }, // Facility
+                5: { cellWidth: 40 }, // Commodity
+                6: { cellWidth: 25 }, // Stock On Hand
+                7: { cellWidth: 25 }, // Consumed
+                8: { cellWidth: 25 }, // Issued
+                9: { cellWidth: 25 }, // Damaged
+                10: { cellWidth: 25 }, // Returned
+                11: { cellWidth: 30 }, // Closing Balance
+                12: { cellWidth: 35 }, // Last Restock Date
+                13: { cellWidth: 35 }, // Stock Out Date
+                14: { cellWidth: 30 }, // Stock Status
+                15: { cellWidth: 35 }  // Last Update
+              },
+              margin: { top: 70 }
+            });
+
+            doc.save(`${fileName}.pdf`);
+          } catch (error) {
+            console.error('PDF generation error:', error);
+            throw error;
+          }
           break;
         }
       }
@@ -396,7 +422,7 @@ export const Reports = () => {
       }
 
       // Filter by facility
-      if (filters.facility && item.facility !== filters.facility) {
+      if (filters.facility && item.facilityName !== filters.facility) {
         return false;
       }
 
@@ -610,9 +636,6 @@ export const Reports = () => {
         subCounty: record.subCountyName || 'Not Assigned',
         ward: record.wardName || 'Not Assigned',
         facility: record.facilityName || 'Not Assigned',
-        chaName: record.chaName || 'Not Assigned',
-        chpName: record.chp?.username || 'Not Assigned',
-        chpEmail: record.chp?.email || 'Not Assigned',
         commodities: [],
         totalConsumption: 0,
         commoditiesOutOfStock: [],
@@ -645,13 +668,10 @@ export const Reports = () => {
       returned: record.excessQuantityReturned,
       closing: record.closingBalance,
       lastRestock: record.lastRestockDate,
-      stockOut: record.stockOutDate,
-      consumptionPeriod: record.consumptionPeriod,
-      closingBalance: record.closingBalance,
-      quantityToOrder: record.quantityToOrder || 0,
-      lastRestockDate: record.lastRestockDate,
       stockOutDate: record.stockOutDate,
-      earliestExpiryDate: record.earliestExpiryDate || null,
+      earliestExpiryDate: record.earliestExpiryDate,
+      quantityToOrder: record.quantityToOrder,
+      consumptionPeriod: record.consumptionPeriod,
       createdByUsername: record.createdByUsername || 'Unknown',
     });
 
@@ -932,7 +952,6 @@ export const Reports = () => {
           <TableRow>
             <TableHead>Community Unit</TableHead>
             <TableHead>Location Details</TableHead>
-            <TableHead>CHA/CHP Info</TableHead>
             <TableHead>Commodity Details</TableHead>
             <TableHead>Stock Status</TableHead>
             <TableHead>Created By</TableHead>
@@ -949,13 +968,6 @@ export const Reports = () => {
                   <p>{item.subCounty}</p>
                   <p className="text-sm text-gray-500">{item.ward}</p>
                   <p className="text-sm text-gray-500">{item.facility}</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  <p className="font-medium text-blue-600">CHA: {item.chaName}</p>
-                  <p className="font-medium text-green-600">CHP: {item.chpName}</p>
-                  {/* <p className="text-sm text-gray-500">{item.chpEmail}</p> */}
                 </div>
               </TableCell>
               <TableCell>
@@ -1019,19 +1031,6 @@ export const Reports = () => {
             </div>
 
             <div className="space-y-2">
-              <div className="grid grid-cols-1 gap-2 text-sm">
-                <div className="p-2 bg-blue-50 rounded-md">
-                  <span className="font-medium text-blue-700">CHA:</span> {item.chaName}
-                </div>
-                <div className="p-2 bg-green-50 rounded-md">
-                  <span className="font-medium text-green-700">CHP:</span> {item.chpName}
-                  <br />
-                  <span className="text-xs text-gray-500">{item.chpEmail}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <p className="font-medium">Commodities:</p>
               {item.commodities.map((commodity, idx) => (
                 <div key={idx} className="p-2 bg-gray-50 rounded-md text-sm">
@@ -1059,6 +1058,10 @@ export const Reports = () => {
               )}
             </div>
 
+            {/* <div className="text-sm text-gray-500">
+              Created: {item.createdByUsername || 'N/A'}
+            </div> */}
+
             <div className="text-sm text-gray-500">
               Last Update: {item.lastUpdate}
             </div>
@@ -1072,3 +1075,8 @@ export const Reports = () => {
     </div>
   );
 };
+
+// In your parent component or route
+<ErrorBoundary>
+  <Reports />
+</ErrorBoundary>

@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { API_CONFIG } from '@/api/config/api.config';
+import { AUTH_HEADER } from '@/api/config/auth-headers';
 
 interface ChpData {
   fullName: string;
@@ -18,6 +20,7 @@ interface ChpData {
   isValid: boolean;
   errors: string[];
   usernameExists: boolean;
+  conflictType?: 'database' | 'batch' | 'both';
   registrationStatus?: 'pending' | 'success' | 'failed';
   errorMessage?: string;
 }
@@ -42,6 +45,13 @@ interface ConflictResolution {
   action: 'skip' | 'auto-rename' | 'reupload';
   conflictingUsernames: string[];
 }
+
+// Create a helper function for common headers
+const getDefaultHeaders = () => ({
+  'Accept': '*/*',
+  'Content-Type': 'application/json',
+  'Authorization': AUTH_HEADER
+});
 
 const ChpBulkUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -78,11 +88,9 @@ const ChpBulkUpload = () => {
 
   const checkUsernameExists = async (username: string): Promise<boolean> => {
     try {
-      const response = await fetch(`http://localhost:9000/api/users/username/${username}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/users/username/${username}`, {
         method: 'GET',
-        headers: {
-          'accept': '*/*'
-        }
+        headers: getDefaultHeaders()
       });
 
       if (response.ok) {
@@ -114,6 +122,7 @@ const ChpBulkUpload = () => {
     setIsCheckingUsernames(true);
     const processedData: ChpData[] = [];
     let usernameConflicts = 0;
+    const seenUsernames = new Set<string>(); // Track usernames within the current batch
 
     try {
       for (let i = 0; i < data.length; i++) {
@@ -137,25 +146,48 @@ const ChpBulkUpload = () => {
         }
 
         const originalUsername = normalizeUsername(fullName);
-        const usernameExists = originalUsername ? await checkUsernameExists(originalUsername) : false;
+        let usernameExists = false;
+        let conflictType: 'database' | 'batch' | 'both' | undefined;
         
-        if (usernameExists) {
-          usernameConflicts++;
-          errors.push('Username already exists');
+        if (originalUsername) {
+          // Check if username exists in database
+          const dbConflict = await checkUsernameExists(originalUsername);
+          
+          // Check if username already exists in current batch
+          const batchConflict = seenUsernames.has(originalUsername);
+          
+          usernameExists = dbConflict || batchConflict;
+          
+          if (usernameExists) {
+            usernameConflicts++;
+            if (dbConflict && batchConflict) {
+              conflictType = 'both';
+              errors.push('Username exists in database and duplicated in file');
+            } else if (dbConflict) {
+              conflictType = 'database';
+              errors.push('Username already exists in database');
+            } else if (batchConflict) {
+              conflictType = 'batch';
+              errors.push('Duplicate username in uploaded file');
+            }
+          } else {
+            seenUsernames.add(originalUsername);
+          }
         }
 
         processedData.push({
           fullName: fullName.trim(),
-          phoneNumber: normalizedPhoneNumber, // Store the normalized phone number
+          phoneNumber: normalizedPhoneNumber,
           originalUsername,
           finalUsername: originalUsername,
           isValid: errors.length === 0,
           errors,
-          usernameExists
+          usernameExists,
+          conflictType
         });
 
         // Update progress
-        setUploadProgress(((i + 1) / data.length) * 50); // 50% for username checking
+        setUploadProgress(((i + 1) / data.length) * 50);
       }
 
       const validCount = processedData.filter(item => item.isValid).length;
@@ -273,15 +305,21 @@ const ChpBulkUpload = () => {
       
       if (action === 'auto-rename') {
         // Generate unique usernames for conflicting ones
-        for (let i = 0; i < updatedData.length; i++) {
-          if (updatedData[i].usernameExists) {
-            const uniqueUsername = await generateUniqueUsername(updatedData[i].originalUsername);
-            updatedData[i].finalUsername = uniqueUsername;
-            updatedData[i].usernameExists = false;
-            updatedData[i].errors = updatedData[i].errors.filter(error => error !== 'Username already exists');
-            updatedData[i].isValid = updatedData[i].errors.length === 0;
-          }
-          setUploadProgress(((i + 1) / updatedData.length) * 100);
+        const conflictingIndexes = updatedData
+          .map((item, index) => item.usernameExists ? index : -1)
+          .filter(index => index !== -1);
+
+        for (let i = 0; i < conflictingIndexes.length; i++) {
+          const index = conflictingIndexes[i];
+          const uniqueUsername = await generateUniqueUsername(updatedData[index].originalUsername);
+          updatedData[index].finalUsername = uniqueUsername;
+          updatedData[index].usernameExists = false;
+          updatedData[index].errors = updatedData[index].errors.filter(error => 
+            !error.includes('Username') && !error.includes('Duplicate')
+          );
+          updatedData[index].isValid = updatedData[index].errors.length === 0;
+          
+          setUploadProgress(((i + 1) / conflictingIndexes.length) * 100);
         }
       } else if (action === 'skip') {
         // Mark conflicting users as invalid
@@ -363,12 +401,9 @@ const ChpBulkUpload = () => {
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:9000/api/auth/register', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/register`, {
         method: 'POST',
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json'
-        },
+        headers: getDefaultHeaders(),
         body: JSON.stringify(registrationData)
       });
 
@@ -534,7 +569,7 @@ const ChpBulkUpload = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Excel file should contain columns: <strong>fullName</strong> and <strong>phoneNumber</strong>. Phone numbers starting with "07" will be automatically converted to international format (254). Usernames will be automatically generated and checked for uniqueness.
+                  Excel file should contain columns: <strong>fullName</strong> and <strong>phoneNumber</strong>. Phone numbers starting with "07" will be automatically converted to international format (254). Usernames will be automatically generated and checked for uniqueness against the database and within the uploaded file.
                 </AlertDescription>
               </Alert>
             </div>
@@ -577,50 +612,68 @@ const ChpBulkUpload = () => {
         </CardContent>
       </Card>
 
-      {/* Username Conflict Resolution Dialog */}
+      {/* Enhanced Username Conflict Resolution Dialog */}
       <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-orange-500" />
               Username Conflicts Detected
             </DialogTitle>
             <DialogDescription>
-              {conflictResolution?.conflictingUsernames.length} usernames already exist in the system. Choose how to handle these conflicts:
+              {conflictResolution?.conflictingUsernames.length} usernames have conflicts. Review the details below and choose how to handle them:
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-md">
-              <h4 className="font-medium mb-2">Conflicting Usernames:</h4>
-              <div className="flex flex-wrap gap-2">
-                {conflictResolution?.conflictingUsernames.map((username, index) => (
-                  <Badge key={index} variant="outline" className="bg-orange-100 dark:bg-orange-900/20">
-                    {username}
-                  </Badge>
-                ))}
+            <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-md max-h-64 overflow-y-auto">
+              <h4 className="font-medium mb-3">Conflict Details:</h4>
+              <div className="space-y-2">
+                {validationResult?.data
+                  .filter(item => item.usernameExists)
+                  .map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
+                      <div>
+                        <span className="font-medium">{item.originalUsername}</span>
+                        <span className="text-sm text-muted-foreground ml-2">({item.fullName})</span>
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className={
+                          item.conflictType === 'database' ? "bg-red-100 text-red-800" :
+                          item.conflictType === 'batch' ? "bg-yellow-100 text-yellow-800" :
+                          "bg-orange-100 text-orange-800"
+                        }
+                      >
+                        {item.conflictType === 'database' ? 'In Database' :
+                         item.conflictType === 'batch' ? 'In File' :
+                         'Both'}
+                      </Badge>
+                    </div>
+                  ))
+                }
               </div>
             </div>
             
-            <div className="space-y-3">
-              <div className="p-3 border rounded-md hover:bg-muted/50">
-                <h4 className="font-medium">Auto-rename (Recommended)</h4>
+            <div className="grid gap-3">
+              <div className="p-4 border rounded-md hover:bg-muted/50 cursor-pointer">
+                <h4 className="font-medium text-green-700">Auto-rename (Recommended)</h4>
                 <p className="text-sm text-muted-foreground">
-                  Automatically generate unique usernames by adding numbers (e.g., john.doe.001, john.doe.002)
+                  Automatically generate unique usernames by adding numbers (e.g., john.doe.001, john.doe.002). This preserves all users.
                 </p>
               </div>
               
-              <div className="p-3 border rounded-md hover:bg-muted/50">
-                <h4 className="font-medium">Skip conflicting users</h4>
+              <div className="p-4 border rounded-md hover:bg-muted/50 cursor-pointer">
+                <h4 className="font-medium text-orange-700">Skip conflicting users</h4>
                 <p className="text-sm text-muted-foreground">
-                  Skip users with existing usernames and proceed with the rest
+                  Skip users with existing usernames and proceed with only unique users. Conflicting users will not be registered.
                 </p>
               </div>
               
-              <div className="p-3 border rounded-md hover:bg-muted/50">
-                <h4 className="font-medium">Re-upload file</h4>
+              <div className="p-4 border rounded-md hover:bg-muted/50 cursor-pointer">
+                <h4 className="font-medium text-blue-700">Re-upload file</h4>
                 <p className="text-sm text-muted-foreground">
-                  Cancel and upload a different file with unique names
+                  Cancel and upload a different file with unique names or manually resolve conflicts in your Excel file.
                 </p>
               </div>
             </div>
@@ -633,7 +686,7 @@ const ChpBulkUpload = () => {
             <Button variant="outline" onClick={() => handleConflictResolution('skip')}>
               Skip Conflicts
             </Button>
-            <Button onClick={() => handleConflictResolution('auto-rename')}>
+            <Button onClick={() => handleConflictResolution('auto-rename')} className="bg-green-600 hover:bg-green-700">
               Auto-rename Users
             </Button>
           </DialogFooter>
@@ -672,7 +725,7 @@ const ChpBulkUpload = () => {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     {validationResult.invalidCount > 0 && `${validationResult.invalidCount} records have validation errors. `}
-                    {validationResult.usernameConflicts > 0 && `${validationResult.usernameConflicts} usernames already exist. `}
+                    {validationResult.usernameConflicts > 0 && `${validationResult.usernameConflicts} usernames have conflicts. `}
                     Please review the table below.
                   </AlertDescription>
                 </Alert>
@@ -685,6 +738,7 @@ const ChpBulkUpload = () => {
                       <TableHead>Full Name</TableHead>
                       <TableHead>Phone Number</TableHead>
                       <TableHead>Username</TableHead>
+                      <TableHead>Conflict Type</TableHead>
                       <TableHead>Validation</TableHead>
                       <TableHead>Registration</TableHead>
                       <TableHead>Details</TableHead>
@@ -704,6 +758,22 @@ const ChpBulkUpload = () => {
                               </div>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {item.conflictType && (
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                item.conflictType === 'database' ? "bg-red-100 text-red-800" :
+                                item.conflictType === 'batch' ? "bg-yellow-100 text-yellow-800" :
+                                "bg-orange-100 text-orange-800"
+                              }
+                            >
+                              {item.conflictType === 'database' ? 'DB Conflict' :
+                               item.conflictType === 'batch' ? 'File Duplicate' :
+                               'Both'}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={item.isValid ? "outline" : "destructive"}>
