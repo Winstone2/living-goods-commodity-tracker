@@ -1,19 +1,23 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, Users, CheckCircle, AlertCircle, Trash2, Download } from 'lucide-react';
+import { Upload, FileText, Users, CheckCircle, AlertCircle, Trash2, Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 interface ChpData {
   fullName: string;
   phoneNumber: string;
+  originalUsername: string;
+  finalUsername: string;
   isValid: boolean;
   errors: string[];
+  usernameExists: boolean;
   registrationStatus?: 'pending' | 'success' | 'failed';
   errorMessage?: string;
 }
@@ -22,6 +26,7 @@ interface ValidationResult {
   validCount: number;
   invalidCount: number;
   totalCount: number;
+  usernameConflicts: number;
   data: ChpData[];
 }
 
@@ -33,6 +38,11 @@ interface ApiRegistrationRequest {
   role: string;
 }
 
+interface ConflictResolution {
+  action: 'skip' | 'auto-rename' | 'reupload';
+  conflictingUsernames: string[];
+}
+
 const ChpBulkUpload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -40,48 +50,127 @@ const ChpBulkUpload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [conflictResolution, setConflictResolution] = useState<ConflictResolution | null>(null);
+  const [isCheckingUsernames, setIsCheckingUsernames] = useState(false);
   const { toast } = useToast();
 
+  const normalizePhoneNumber = (phone: string): string => {
+    const cleanPhone = phone.trim();
+    if (cleanPhone.startsWith('07')) {
+      return '254' + cleanPhone.substring(1);
+    }
+    return cleanPhone;
+  };
+
   const validatePhoneNumber = (phone: string): boolean => {
-    // Basic phone number validation - adjust pattern as needed
     const phonePattern = /^[\+]?[1-9][\d]{3,14}$/;
     return phonePattern.test(phone.replace(/[\s\-\(\)]/g, ''));
   };
 
-  const validateChpData = (data: any[]): ValidationResult => {
-    const processedData: ChpData[] = data.map((row, index) => {
-      const fullName = row.fullName || row.FullName || row.FULLNAME || row.name || row.Name || row.NAME || '';
-      const phoneNumber = row.phoneNumber || row.phone || row.Phone || row.PHONE || row.PhoneNumber || row.PHONENUMBER || '';
-      
-      const errors: string[] = [];
-      
-      if (!fullName.trim()) {
-        errors.push('Full name is required');
+  const normalizeUsername = (fullName: string): string => {
+    return fullName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '.');
+  };
+
+  const checkUsernameExists = async (username: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`http://localhost:9000/api/users/username/${username}`, {
+        method: 'GET',
+        headers: {
+          'accept': '*/*'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.success === true;
       }
       
-      if (!phoneNumber.trim()) {
-        errors.push('Phone number is required');
-      } else if (!validatePhoneNumber(phoneNumber)) {
-        errors.push('Invalid phone number format');
+      return false;
+    } catch (error) {
+      console.error('Error checking username:', error);
+      return false;
+    }
+  };
+
+  const generateUniqueUsername = async (baseUsername: string): Promise<string> => {
+    let counter = 1;
+    let testUsername = baseUsername;
+    
+    while (await checkUsernameExists(testUsername)) {
+      testUsername = `${baseUsername}.${counter.toString().padStart(3, '0')}`;
+      counter++;
+      if (counter > 999) break; // Safety limit
+    }
+    
+    return testUsername;
+  };
+
+  const validateChpData = async (data: any[]): Promise<ValidationResult> => {
+    setIsCheckingUsernames(true);
+    const processedData: ChpData[] = [];
+    let usernameConflicts = 0;
+
+    try {
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const fullName = row.fullName || row.FullName || row.FULLNAME || row.name || row.Name || row.NAME || '';
+        const rawPhoneNumber = row.phoneNumber || row.phone || row.Phone || row.PHONE || row.PhoneNumber || row.PHONENUMBER || '';
+        
+        // Normalize phone number - convert 07XXXXXXXX to 25470XXXXXXXX
+        const normalizedPhoneNumber = normalizePhoneNumber(rawPhoneNumber);
+        
+        const errors: string[] = [];
+        
+        if (!fullName.trim()) {
+          errors.push('Full name is required');
+        }
+        
+        if (!rawPhoneNumber.trim()) {
+          errors.push('Phone number is required');
+        } else if (!validatePhoneNumber(normalizedPhoneNumber)) {
+          errors.push('Invalid phone number format');
+        }
+
+        const originalUsername = normalizeUsername(fullName);
+        const usernameExists = originalUsername ? await checkUsernameExists(originalUsername) : false;
+        
+        if (usernameExists) {
+          usernameConflicts++;
+          errors.push('Username already exists');
+        }
+
+        processedData.push({
+          fullName: fullName.trim(),
+          phoneNumber: normalizedPhoneNumber, // Store the normalized phone number
+          originalUsername,
+          finalUsername: originalUsername,
+          isValid: errors.length === 0,
+          errors,
+          usernameExists
+        });
+
+        // Update progress
+        setUploadProgress(((i + 1) / data.length) * 50); // 50% for username checking
       }
-      
+
+      const validCount = processedData.filter(item => item.isValid).length;
+      const invalidCount = processedData.length - validCount;
+
       return {
-        fullName: fullName.trim(),
-        phoneNumber: phoneNumber.trim(),
-        isValid: errors.length === 0,
-        errors
+        validCount,
+        invalidCount,
+        totalCount: processedData.length,
+        usernameConflicts,
+        data: processedData
       };
-    });
-
-    const validCount = processedData.filter(item => item.isValid).length;
-    const invalidCount = processedData.length - validCount;
-
-    return {
-      validCount,
-      invalidCount,
-      totalCount: processedData.length,
-      data: processedData
-    };
+    } finally {
+      setIsCheckingUsernames(false);
+    }
   };
 
   const handleFileUpload = useCallback(async (uploadedFile: File) => {
@@ -102,7 +191,7 @@ const ChpBulkUpload = () => {
 
     try {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
@@ -120,18 +209,30 @@ const ChpBulkUpload = () => {
             return;
           }
 
-          setUploadProgress(50);
+          setUploadProgress(25);
           
-          const result = validateChpData(jsonData);
+          const result = await validateChpData(jsonData);
           setValidationResult(result);
           setFile(uploadedFile);
           setUploadProgress(100);
-          setIsRegistrationComplete(false); // Reset registration status
+          setIsRegistrationComplete(false);
 
-          toast({
-            title: "File processed successfully",
-            description: `Found ${result.totalCount} records (${result.validCount} valid, ${result.invalidCount} invalid)`,
-          });
+          if (result.usernameConflicts > 0) {
+            const conflictingUsernames = result.data
+              .filter(item => item.usernameExists)
+              .map(item => item.originalUsername);
+            
+            setConflictResolution({
+              action: 'skip',
+              conflictingUsernames
+            });
+            setShowConflictDialog(true);
+          } else {
+            toast({
+              title: "File processed successfully",
+              description: `Found ${result.totalCount} records (${result.validCount} valid, ${result.invalidCount} invalid)`,
+            });
+          }
 
         } catch (error) {
           toast({
@@ -154,6 +255,74 @@ const ChpBulkUpload = () => {
       setIsProcessing(false);
     }
   }, [toast]);
+
+  const handleConflictResolution = async (action: 'skip' | 'auto-rename' | 'reupload') => {
+    if (!validationResult) return;
+
+    if (action === 'reupload') {
+      handleReset();
+      setShowConflictDialog(false);
+      return;
+    }
+
+    setIsProcessing(true);
+    setUploadProgress(0);
+
+    try {
+      const updatedData = [...validationResult.data];
+      
+      if (action === 'auto-rename') {
+        // Generate unique usernames for conflicting ones
+        for (let i = 0; i < updatedData.length; i++) {
+          if (updatedData[i].usernameExists) {
+            const uniqueUsername = await generateUniqueUsername(updatedData[i].originalUsername);
+            updatedData[i].finalUsername = uniqueUsername;
+            updatedData[i].usernameExists = false;
+            updatedData[i].errors = updatedData[i].errors.filter(error => error !== 'Username already exists');
+            updatedData[i].isValid = updatedData[i].errors.length === 0;
+          }
+          setUploadProgress(((i + 1) / updatedData.length) * 100);
+        }
+      } else if (action === 'skip') {
+        // Mark conflicting users as invalid
+        for (let i = 0; i < updatedData.length; i++) {
+          if (updatedData[i].usernameExists) {
+            updatedData[i].isValid = false;
+          }
+        }
+      }
+
+      const newValidCount = updatedData.filter(item => item.isValid).length;
+      const newInvalidCount = updatedData.length - newValidCount;
+
+      const newResult = {
+        ...validationResult,
+        validCount: newValidCount,
+        invalidCount: newInvalidCount,
+        usernameConflicts: action === 'skip' ? validationResult.usernameConflicts : 0,
+        data: updatedData
+      };
+
+      setValidationResult(newResult);
+      setShowConflictDialog(false);
+
+      toast({
+        title: "Conflicts resolved",
+        description: action === 'auto-rename' 
+          ? `Generated unique usernames for ${validationResult.usernameConflicts} users`
+          : `Skipped ${validationResult.usernameConflicts} users with existing usernames`,
+      });
+
+    } catch (error) {
+      toast({
+        title: "Error resolving conflicts",
+        description: "Failed to resolve username conflicts",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -182,18 +351,11 @@ const ChpBulkUpload = () => {
   };
 
   const registerSingleChp = async (chpData: ChpData): Promise<{ success: boolean; error?: string }> => {
-
-     const normalizedUsername = chpData.fullName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .trim()
-    .replace(/\s+/g, '.');
-
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
-  const email = `${normalizedUsername}${randomSuffix}@chp.org`; // Or use your domain
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const email = `${chpData.finalUsername}${randomSuffix}@chp.org`;
 
     const registrationData: ApiRegistrationRequest = {
-      username: chpData.fullName,
+      username: chpData.finalUsername,
       email: email,
       phoneNumber: chpData.phoneNumber,
       password: "admin@123",
@@ -231,7 +393,6 @@ const ChpBulkUpload = () => {
     let successCount = 0;
     let failureCount = 0;
 
-    // Update the validation result data to track individual registration status
     const updatedData = [...validationResult.data];
     
     try {
@@ -292,6 +453,8 @@ const ChpBulkUpload = () => {
     setIsProcessing(false);
     setUploadProgress(0);
     setIsRegistrationComplete(false);
+    setShowConflictDialog(false);
+    setConflictResolution(null);
   };
 
   const downloadTemplate = () => {
@@ -314,8 +477,8 @@ const ChpBulkUpload = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <Card className="shadow-medical">
-        <CardHeader className="bg-gradient-upload">
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             CHP Bulk Registration
@@ -342,8 +505,8 @@ const ChpBulkUpload = () => {
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
                   isDragging 
-                    ? 'border-primary bg-medical-light-blue' 
-                    : 'border-muted-foreground/25 hover:border-primary hover:bg-medical-light-blue/50'
+                    ? 'border-primary bg-accent' 
+                    : 'border-muted-foreground/25 hover:border-primary hover:bg-accent/50'
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -371,7 +534,7 @@ const ChpBulkUpload = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Excel file should contain columns: <strong>fullName</strong> and <strong>phoneNumber</strong>
+                  Excel file should contain columns: <strong>fullName</strong> and <strong>phoneNumber</strong>. Phone numbers starting with "07" will be automatically converted to international format (254). Usernames will be automatically generated and checked for uniqueness.
                 </AlertDescription>
               </Alert>
             </div>
@@ -381,12 +544,19 @@ const ChpBulkUpload = () => {
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   <span className="font-medium">{file.name}</span>
+                  {isCheckingUsernames && (
+                    <Badge variant="outline" className="ml-2">
+                      <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                      Checking usernames...
+                    </Badge>
+                  )}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleReset}
                   className="flex items-center gap-1"
+                  disabled={isProcessing}
                 >
                   <Trash2 className="h-3 w-3" />
                   Remove
@@ -396,7 +566,7 @@ const ChpBulkUpload = () => {
               {isProcessing && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Processing...</span>
+                    <span>{isCheckingUsernames ? "Checking usernames..." : "Processing..."}</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
@@ -407,33 +577,103 @@ const ChpBulkUpload = () => {
         </CardContent>
       </Card>
 
+      {/* Username Conflict Resolution Dialog */}
+      <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Username Conflicts Detected
+            </DialogTitle>
+            <DialogDescription>
+              {conflictResolution?.conflictingUsernames.length} usernames already exist in the system. Choose how to handle these conflicts:
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-md">
+              <h4 className="font-medium mb-2">Conflicting Usernames:</h4>
+              <div className="flex flex-wrap gap-2">
+                {conflictResolution?.conflictingUsernames.map((username, index) => (
+                  <Badge key={index} variant="outline" className="bg-orange-100 dark:bg-orange-900/20">
+                    {username}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="p-3 border rounded-md hover:bg-muted/50">
+                <h4 className="font-medium">Auto-rename (Recommended)</h4>
+                <p className="text-sm text-muted-foreground">
+                  Automatically generate unique usernames by adding numbers (e.g., john.doe.001, john.doe.002)
+                </p>
+              </div>
+              
+              <div className="p-3 border rounded-md hover:bg-muted/50">
+                <h4 className="font-medium">Skip conflicting users</h4>
+                <p className="text-sm text-muted-foreground">
+                  Skip users with existing usernames and proceed with the rest
+                </p>
+              </div>
+              
+              <div className="p-3 border rounded-md hover:bg-muted/50">
+                <h4 className="font-medium">Re-upload file</h4>
+                <p className="text-sm text-muted-foreground">
+                  Cancel and upload a different file with unique names
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => handleConflictResolution('reupload')}>
+              Re-upload File
+            </Button>
+            <Button variant="outline" onClick={() => handleConflictResolution('skip')}>
+              Skip Conflicts
+            </Button>
+            <Button onClick={() => handleConflictResolution('auto-rename')}>
+              Auto-rename Users
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {validationResult && (
         <>
-          <Card className="shadow-medical">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-success" />
+                <CheckCircle className="h-5 w-5 text-green-500" />
                 Validation Results
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 mb-4">
-                <Badge variant="outline" className="bg-success-light">
+                <Badge variant="outline" className="bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300">
                   {validationResult.validCount} Valid
                 </Badge>
-                <Badge variant="outline" className="bg-error-light">
+                <Badge variant="outline" className="bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300">
                   {validationResult.invalidCount} Invalid
                 </Badge>
+                {validationResult.usernameConflicts > 0 && (
+                  <Badge variant="outline" className="bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300">
+                    {validationResult.usernameConflicts} Username Conflicts
+                  </Badge>
+                )}
                 <Badge variant="outline">
                   {validationResult.totalCount} Total
                 </Badge>
               </div>
               
-              {validationResult.invalidCount > 0 && (
+              {(validationResult.invalidCount > 0 || validationResult.usernameConflicts > 0) && (
                 <Alert className="mb-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {validationResult.invalidCount} records have validation errors. Please review the table below.
+                    {validationResult.invalidCount > 0 && `${validationResult.invalidCount} records have validation errors. `}
+                    {validationResult.usernameConflicts > 0 && `${validationResult.usernameConflicts} usernames already exist. `}
+                    Please review the table below.
                   </AlertDescription>
                 </Alert>
               )}
@@ -444,6 +684,7 @@ const ChpBulkUpload = () => {
                     <TableRow>
                       <TableHead>Full Name</TableHead>
                       <TableHead>Phone Number</TableHead>
+                      <TableHead>Username</TableHead>
                       <TableHead>Validation</TableHead>
                       <TableHead>Registration</TableHead>
                       <TableHead>Details</TableHead>
@@ -455,18 +696,28 @@ const ChpBulkUpload = () => {
                         <TableCell className="font-medium">{item.fullName}</TableCell>
                         <TableCell>{item.phoneNumber}</TableCell>
                         <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm">{item.finalUsername}</div>
+                            {item.finalUsername !== item.originalUsername && (
+                              <div className="text-xs text-muted-foreground">
+                                Original: {item.originalUsername}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={item.isValid ? "outline" : "destructive"}>
                             {item.isValid ? "Valid" : "Invalid"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           {item.registrationStatus === 'pending' && (
-                            <Badge variant="outline" className="bg-warning/10">
+                            <Badge variant="outline" className="bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300">
                               Registering...
                             </Badge>
                           )}
                           {item.registrationStatus === 'success' && (
-                            <Badge variant="outline" className="bg-success/10 text-success">
+                            <Badge variant="outline" className="bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300">
                               Registered
                             </Badge>
                           )}
@@ -479,7 +730,7 @@ const ChpBulkUpload = () => {
                         <TableCell className="text-sm text-muted-foreground">
                           {item.errors.length > 0 ? item.errors.join(", ") : ""}
                           {item.errorMessage && (
-                            <span className="text-error block mt-1">
+                            <span className="text-red-500 block mt-1">
                               {item.errorMessage}
                             </span>
                           )}
@@ -493,7 +744,7 @@ const ChpBulkUpload = () => {
           </Card>
 
           {!isRegistrationComplete && (
-            <Card className="shadow-medical">
+            <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -505,7 +756,7 @@ const ChpBulkUpload = () => {
                   <Button
                     onClick={handleBulkRegistration}
                     disabled={isProcessing || validationResult.validCount === 0}
-                    className="bg-success hover:bg-success/90 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     {isProcessing ? "Registering..." : "Register CHPs"}
                   </Button>
@@ -525,19 +776,19 @@ const ChpBulkUpload = () => {
           )}
 
           {isRegistrationComplete && (
-            <Card className="shadow-success border-success">
+            <Card className="border-green-200 dark:border-green-800">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="h-6 w-6 text-success" />
+                  <CheckCircle className="h-6 w-6 text-green-500" />
                   <div>
-                    <h3 className="font-semibold text-success">Registration Complete!</h3>
+                    <h3 className="font-semibold text-green-700 dark:text-green-300">Registration Complete!</h3>
                     <p className="text-sm text-muted-foreground">
                       Successfully registered {validationResult.validCount} CHPs
                     </p>
                   </div>
                 </div>
                 
-                <div className="mt-4 flex gap-2 bg-success/10 p-4 rounded-md">
+                <div className="mt-4 flex gap-2 bg-green-50 dark:bg-green-950/20 p-4 rounded-md">
                   <Button onClick={handleReset} variant="outline">
                     Register More CHPs
                   </Button>
