@@ -389,11 +389,19 @@ const ChpBulkUpload = () => {
   };
 
   const registerSingleChp = async (chpData: ChpData): Promise<{ success: boolean; error?: string }> => {
+    // Check if username exists in database and generate unique one if needed
+    let finalUsername = chpData.finalUsername;
+    const usernameExists = await checkUsernameExists(finalUsername);
+    
+    if (usernameExists) {
+      finalUsername = await generateUniqueUsername(chpData.originalUsername || normalizeUsername(chpData.fullName));
+    }
+
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const email = `${chpData.finalUsername}${randomSuffix}@chp.org`;
+    const email = `${finalUsername}${randomSuffix}@chp.org`;
 
     const registrationData: ApiRegistrationRequest = {
-      username: chpData.finalUsername,
+      username: finalUsername,
       email: email,
       phoneNumber: chpData.phoneNumber,
       password: "admin@123",

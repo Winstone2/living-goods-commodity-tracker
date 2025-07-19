@@ -7,11 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Download, FileText, FileSpreadsheet, FileImage, Calendar, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-// import { API_CONFIG } from '@/api/config';
 import { API_CONFIG } from '@/api/config/api.config';
-import type { DashboardStats } from '@/types/dashboard';
-
-
+import type { DashboardStats } from '@/types';
 import { SubCounty } from '@/types';
 
 // Add these imports at the top
@@ -49,8 +46,10 @@ interface County {
 }
 
 interface Ward {
+  id: number;
   name: string;
   subCountyId: number | null;
+  wardId: number;
 }
 
 interface Facility {
@@ -68,7 +67,6 @@ interface CommunityUnit {
   subCountyId: number;
   wardId: number;
   linkFacilityId: number;
-  // createdById: number | null;
   createdAt: string;
 }
 
@@ -91,7 +89,8 @@ interface RecordData {
   consumptionPeriod: number;
   recordDate: string;
   createdByUsername: string | null;
-  // createdByUsername: string | null;
+  chaName: string | null;
+  chpUsername: string | null;
   countyName: string | null;
   subCountyName: string | null;
   wardName: string | null;
@@ -109,7 +108,8 @@ interface ProcessedReportData {
   ward: string;
   facility: string;
   createdByUsername: string | null;
-
+  chaName: string;
+  chpUsername: string;
   commodities: Array<{
     name: string;
     consumed: number;
@@ -128,14 +128,13 @@ interface ProcessedReportData {
     stockOutDate: string | null;
     earliestExpiryDate: string | null;
     createdByUsername: string | null;
-
+    chpUsername: string | null; // ✅ Added CHP username to each commodity
   }>;
   totalConsumption: number;
   commoditiesOutOfStock: string[];
   lastUpdate: string;
-  // createdBy: string | null;
 }
- 
+
 // Add this function before the Reports component
 const getSummaryData = (data: ProcessedReportData[]) => {
   const uniqueValues = data.reduce((acc, item) => {
@@ -200,8 +199,9 @@ export const Reports = () => {
       // For each commodity in the community unit, create a separate row
       item.commodities.forEach(commodity => {
         exportRows.push({
-        
           'County': item.county,
+          'CHA Name': item.chaName,
+          'CHP Name': commodity.chpUsername || 'N/A', // ✅ Use commodity-specific CHP name
           'Sub-County': item.subCounty,
           'Ward': item.ward,
           'Facility': item.facility,
@@ -210,7 +210,7 @@ export const Reports = () => {
           'Opening Balance': commodity.stockOnHand,
           'Quantity Issued': commodity.issued,
           'Quantity Consumed': commodity.consumed,
-          'Quantity Expired': commodity.expired || 'N/A', // Added missing field
+          'Quantity Expired': commodity.expired || 'N/A',
           'Quantity Damaged': commodity.damaged,
           'Excess Qty Returned': commodity.returned,
           'Closing Balance': commodity.closing,
@@ -271,7 +271,7 @@ export const Reports = () => {
             doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 60);
 
             // Configure and add the table
-            doc.autoTable({
+            (doc as any).autoTable({
               head: [Object.keys(data[0])],
               body: data.map(Object.values),
               startY: 70,
@@ -286,22 +286,22 @@ export const Reports = () => {
                 fontStyle: 'bold'
               },
               columnStyles: {
-                0: { cellWidth: 40 }, // Community Unit
-                1: { cellWidth: 35 }, // County
-                2: { cellWidth: 35 }, // Sub-County
-                3: { cellWidth: 35 }, // Ward
-                4: { cellWidth: 40 }, // Facility
-                5: { cellWidth: 40 }, // Commodity
-                6: { cellWidth: 25 }, // Stock On Hand
-                7: { cellWidth: 25 }, // Consumed
-                8: { cellWidth: 25 }, // Issued
-                9: { cellWidth: 25 }, // Damaged
-                10: { cellWidth: 25 }, // Returned
-                11: { cellWidth: 30 }, // Closing Balance
-                12: { cellWidth: 35 }, // Last Restock Date
-                13: { cellWidth: 35 }, // Stock Out Date
-                14: { cellWidth: 30 }, // Stock Status
-                15: { cellWidth: 35 }  // Last Update
+                0: { cellWidth: 40 },
+                1: { cellWidth: 35 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 35 },
+                4: { cellWidth: 40 },
+                5: { cellWidth: 40 },
+                6: { cellWidth: 25 },
+                7: { cellWidth: 25 },
+                8: { cellWidth: 25 },
+                9: { cellWidth: 25 },
+                10: { cellWidth: 25 },
+                11: { cellWidth: 30 },
+                12: { cellWidth: 35 },
+                13: { cellWidth: 35 },
+                14: { cellWidth: 30 },
+                15: { cellWidth: 35 }
               },
               margin: { top: 70 }
             });
@@ -355,13 +355,12 @@ export const Reports = () => {
 
   const getFilteredFacilities = () => {
     if (!filters.ward) {
-      // ...existing logic for county/subcounty...
       return facilities;
     }
     // Ward selected - show facilities linked to the selected ward
-    const wardIds = filteredWards.filter(w => w.subCountyId?.toString() === filters.subCounty).map(w => w.id);
+    const wardIds = filteredWards.filter(w => w.subCountyId?.toString() === filters.subCounty).map(w => w.wardId);
     return facilities.filter(
-      facility => Array.isArray(facility.parentIds) && facility.parentIds.some(id => wardIds.includes(id))
+      facility => Array.isArray((facility as any).parentIds) && (facility as any).parentIds.some((id: number) => wardIds.includes(id))
     );
   };
 
@@ -383,13 +382,13 @@ export const Reports = () => {
     if (filters.facility) {
       const selectedFacility = facilities.find(f => f.name === filters.facility);
       if (selectedFacility) {
-        // Assuming facilities have an ID that matches linkFacilityId
-        filtered = filtered.filter(cu => cu.linkFacilityId === selectedFacility.wardId); // You'll need the facility ID here
+        filtered = filtered.filter(cu => cu.linkFacilityId === selectedFacility.wardId);
       }
     }
 
     return filtered;
   };
+
   // Add this function before the return statement
   const getFilteredReportData = () => {
     return reportData.filter(item => {
@@ -422,7 +421,7 @@ export const Reports = () => {
       }
 
       // Filter by facility
-      if (filters.facility && item.facilityName !== filters.facility) {
+      if (filters.facility && item.facility !== filters.facility) {
         return false;
       }
 
@@ -490,7 +489,7 @@ export const Reports = () => {
       const result = await response.json();
       if (result.success) {
         const processedData = processReportData(result.data);
-        console.log('what we are getting fromn te record data source', result)
+        console.log('what we are getting from the record data source', result);
         console.log('Processed Report Data:', processedData);
         setReportData(processedData);
         return processedData;
@@ -624,75 +623,88 @@ export const Reports = () => {
     setFilteredCommunityUnits(getFilteredCommunityUnits());
   }, [filters.county, filters.subCounty, filters.ward, filters.facility, subCounties, wards, facilities, communityUnits]);
   
+  // ✅ FIXED: Process report data with proper CHP handling
+  const processReportData = (records: RecordData[]): ProcessedReportData[] => {
+    const groupedByCU = records.reduce((acc, record) => {
+      const cuId = record.communityUnitId;
+      if (!acc[cuId]) {
+        acc[cuId] = {
+          id: cuId.toString(),
+          communityUnit: record.communityUnitName,
+          county: record.countyName || 'Not Assigned',
+          chaName: record.chaName || 'Not Assigned',
+          chpUsername: record.chpUsername || 'Unknown',
+          subCounty: record.subCountyName || 'Not Assigned',
+          ward: record.wardName || 'Not Assigned',
+          facility: record.facilityName || 'Not Assigned',
+          commodities: [],
+          totalConsumption: 0,
+          commoditiesOutOfStock: [],
+          lastUpdate: record.recordDate,
+          createdByUsername: record.createdByUsername || 'Unknown',
+        };
+      } else {
+        // ✅ Update createdByUsername if it was 'Unknown' and now we have a valid name
+        if (
+          acc[cuId].createdByUsername === 'Unknown' &&
+          record.createdByUsername
+        ) {
+          acc[cuId].createdByUsername = record.createdByUsername;
+        }
 
- const processReportData = (records: RecordData[]): ProcessedReportData[] => {
-  const groupedByCU = records.reduce((acc, record) => {
-    const cuId = record.communityUnitId;
-    if (!acc[cuId]) {
-      acc[cuId] = {
-        id: cuId.toString(),
-        communityUnit: record.communityUnitName,
-        county: record.countyName || 'Not Assigned',
-        subCounty: record.subCountyName || 'Not Assigned',
-        ward: record.wardName || 'Not Assigned',
-        facility: record.facilityName || 'Not Assigned',
-        commodities: [],
-        totalConsumption: 0,
-        commoditiesOutOfStock: [],
-        lastUpdate: record.recordDate,
+        // ✅ Update chpUsername if it was 'Unknown' and now we have a valid name
+        if (
+          acc[cuId].chpUsername === 'Unknown' &&
+          record.chpUsername
+        ) {
+          acc[cuId].chpUsername = record.chpUsername;
+        }
+
+        // ✅ Update lastUpdate if this record is more recent
+        if (new Date(record.recordDate) > new Date(acc[cuId].lastUpdate)) {
+          acc[cuId].lastUpdate = record.recordDate;
+        }
+      }
+
+      // ✅ Add commodity details with individual CHP information
+      acc[cuId].commodities.push({
+        name: record.commodityName,
+        consumed: record.quantityConsumed,
+        expired: record.quantityExpired,
+        damaged: record.quantityDamaged,
+        stockOnHand: record.stockOnHand,
+        issued: record.quantityIssued,
+        returned: record.excessQuantityReturned,
+        closing: record.closingBalance,
+        lastRestock: record.lastRestockDate,
+        stockOut: record.stockOutDate,
+        stockOutDate: record.stockOutDate,
+        earliestExpiryDate: record.lastRestockDate,
+        quantityToOrder: 0,
+        lastRestockDate: record.lastRestockDate,
+        closingBalance: record.closingBalance,
+        consumptionPeriod: record.consumptionPeriod,
         createdByUsername: record.createdByUsername || 'Unknown',
-      };
-    } else {
-      // ✅ Update createdByUsername if it was 'Unknown' and now we have a valid name
-      if (
-        acc[cuId].createdByUsername === 'Unknown' &&
-        record.createdByUsername
-      ) {
-        acc[cuId].createdByUsername = record.createdByUsername;
+        chpUsername: record.chpUsername || 'Unknown',
+      });
+
+      // ✅ Track total consumption
+      acc[cuId].totalConsumption += record.quantityConsumed;
+
+      // ✅ Track out-of-stock commodities
+      if (record.stockOnHand === 0) {
+        acc[cuId].commoditiesOutOfStock.push(record.commodityName);
       }
 
-      // ✅ Update lastUpdate if this record is more recent
-      if (new Date(record.recordDate) > new Date(acc[cuId].lastUpdate)) {
-        acc[cuId].lastUpdate = record.recordDate;
-      }
-    }
+      return acc;
+    }, {} as Record<number, ProcessedReportData>);
 
-    // ✅ Add commodity details
-    acc[cuId].commodities.push({
-      name: record.commodityName,
-      consumed: record.quantityConsumed,
-      expired: record.quantityExpired,
-      damaged: record.quantityDamaged,
-      stockOnHand: record.stockOnHand,
-      issued: record.quantityIssued,
-      returned: record.excessQuantityReturned,
-      closing: record.closingBalance,
-      lastRestock: record.lastRestockDate,
-      stockOutDate: record.stockOutDate,
-      earliestExpiryDate: record.earliestExpiryDate,
-      quantityToOrder: record.quantityToOrder,
-      consumptionPeriod: record.consumptionPeriod,
-      createdByUsername: record.createdByUsername || 'Unknown',
-    });
-
-    // ✅ Track total consumption
-    acc[cuId].totalConsumption += record.quantityConsumed;
-
-    // ✅ Track out-of-stock commodities
-    if (record.stockOnHand === 0) {
-      acc[cuId].commoditiesOutOfStock.push(record.commodityName);
-    }
-
-    return acc;
-  }, {} as Record<number, ProcessedReportData>);
-
-  return Object.values(groupedByCU).map(item => ({
-    ...item,
-    lastUpdate: new Date(item.lastUpdate).toLocaleDateString(),
-    commoditiesOutOfStock: [...new Set(item.commoditiesOutOfStock)],
-  }));
-};
-
+    return Object.values(groupedByCU).map(item => ({
+      ...item,
+      lastUpdate: new Date(item.lastUpdate).toLocaleDateString(),
+      commoditiesOutOfStock: [...new Set(item.commoditiesOutOfStock)],
+    }));
+  };
 
   // Add loading state to the UI
   if (loading) {
@@ -726,10 +738,6 @@ export const Reports = () => {
             <FileSpreadsheet className="w-4 h-4 mr-1 sm:mr-2" />
             Excel
           </Button>
-          {/* <Button onClick={() => exportData('pdf')} variant="outline" className="text-xs sm:text-sm" size="sm">
-            <FileImage className="w-4 h-4 mr-1 sm:mr-2" />
-            PDF
-          </Button> */}
         </div>
       </div>
 
@@ -789,7 +797,7 @@ export const Reports = () => {
                   setFilters({
                     ...filters,
                     county: value,
-                    subCounty: '', // Reset dependent filters
+                    subCounty: '',
                     ward: '',
                     facility: '',
                     communityUnit: ''
@@ -819,7 +827,7 @@ export const Reports = () => {
                 onValueChange={(value) => setFilters({
                   ...filters,
                   subCounty: value,
-                  ward: '', // Reset dependent filters
+                  ward: '',
                   facility: '',
                   communityUnit: ''
                 })}
@@ -847,7 +855,7 @@ export const Reports = () => {
                 onValueChange={(value) => setFilters({
                   ...filters,
                   ward: value,
-                  facility: '', // Reset dependent filters
+                  facility: '',
                   communityUnit: ''
                 })}
                 disabled={!filters.subCounty}
@@ -873,7 +881,7 @@ export const Reports = () => {
                     onValueChange={(value) => setFilters({
                       ...filters,
                       facility: value,
-                      communityUnit: '' // Reset dependent filter
+                      communityUnit: ''
                     })}
                     disabled={!filters.ward}
                   >
@@ -932,151 +940,147 @@ export const Reports = () => {
           </div>
         </CardContent>
       </Card>
+
       <Card>
-  <CardHeader>
-    <CardTitle>Detailed Report</CardTitle>
-  </CardHeader>
-  <CardContent>
-    {/* Desktop View */}
-    <div
-      className="hidden md:block overflow-x-auto"
-      style={{
-        maxHeight: '60vh', // or any height you prefer
-        overflowY: 'auto',
-        borderRadius: '0.5rem',
-        border: '1px solid #e5e7eb'
-      }}
-    >
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Community Unit</TableHead>
-            <TableHead>Location Details</TableHead>
-            <TableHead>Commodity Details</TableHead>
-            <TableHead>Stock Status</TableHead>
-            <TableHead>Created By</TableHead>
-            <TableHead>Last Update</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {getFilteredReportData().map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="font-medium">{item.communityUnit}</TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  <p className="font-semibold">{item.county}</p>
-                  <p>{item.subCounty}</p>
-                  <p className="text-sm text-gray-500">{item.ward}</p>
-                  <p className="text-sm text-gray-500">{item.facility}</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-2">
-                  {item.commodities.map((commodity, idx) => (
-                    <div key={idx} className="p-2 bg-gray-50 rounded-md">
-                      <p className="font-medium">{commodity.name}</p>
-                      <div className="grid grid-cols-2 gap-x-4 text-sm">
-                        <span>Consumed: {commodity.consumed}</span>
-                        <span>Issued: {commodity.issued}</span>
-                        <span>Damaged: {commodity.damaged}</span>
-                        <span>Returned: {commodity.returned}</span>
+        <CardHeader>
+          <CardTitle>Detailed Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Desktop View */}
+          <div
+            className="hidden md:block overflow-x-auto"
+            style={{
+              maxHeight: '60vh',
+              overflowY: 'auto',
+              borderRadius: '0.5rem',
+              border: '1px solid #e5e7eb'
+            }}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Community Unit</TableHead>
+                  <TableHead>Location Details</TableHead>
+                  <TableHead>Commodity Details</TableHead>
+                  <TableHead>Stock Status</TableHead>
+                  <TableHead>CHA</TableHead>
+                  <TableHead>Last Update</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getFilteredReportData().map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.communityUnit}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className="font-semibold">{item.county}</p>
+                        <p>{item.subCounty}</p>
+                        <p className="text-sm text-gray-500">{item.ward}</p>
+                        <p className="text-sm text-gray-500">{item.facility}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        {item.commodities.map((commodity, idx) => (
+                          <div key={idx} className="p-2 bg-gray-50 rounded-md">
+                            <p className="font-medium">{commodity.name}</p>
+                            <p className="text-xs text-blue-600">CHP: {commodity.chpUsername || 'N/A'}</p> {/* ✅ Show CHP per commodity */}
+                            <div className="grid grid-cols-2 gap-x-4 text-sm">
+                              <span>Consumed: {commodity.consumed}</span>
+                              <span>Issued: {commodity.issued}</span>
+                              <span>Damaged: {commodity.damaged}</span>
+                              <span>Returned: {commodity.returned}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {item.commoditiesOutOfStock.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {item.commoditiesOutOfStock.map((commodity, index) => (
+                            <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                              {commodity}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-green-600">All In Stock</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {item.chaName || 'N/A'}
+                    </TableCell>
+                    <TableCell>{item.lastUpdate}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden space-y-4">
+            {getFilteredReportData().map((item) => (
+              <div key={item.id} className="bg-white p-4 rounded-lg border">
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="font-bold text-lg">{item.communityUnit}</h3>
+                    <p className="text-sm text-gray-500">{item.facility}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">County:</span> {item.county}
                     </div>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell>
-                {item.commoditiesOutOfStock.length > 0 ? (
-                  <div className="flex flex-col gap-1">
-                    {item.commoditiesOutOfStock.map((commodity, index) => (
-                      <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                        {commodity}
-                      </span>
+                    <div>
+                      <span className="font-medium">Sub-County:</span> {item.subCounty}
+                    </div>
+                    <div>
+                      <span className="font-medium">Ward:</span> {item.ward}
+                    </div>
+                    <div>
+                      <span className="font-medium">CHA:</span> {item.chaName}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="font-medium">Commodities:</p>
+                    {item.commodities.map((commodity, idx) => (
+                      <div key={idx} className="p-2 bg-gray-50 rounded-md text-sm">
+                        <p className="font-medium">{commodity.name}</p>
+                        <p className="text-xs text-blue-600">CHP: {commodity.chpUsername || 'N/A'}</p> {/* ✅ Show CHP per commodity */}
+                        <div className="grid grid-cols-2 gap-1">
+                          <span>Stock: {commodity.stockOnHand}</span>
+                          <span>Used: {commodity.consumed}</span>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                ) : (
-                  <span className="text-green-600">All In Stock</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {item.createdByUsername || 'N/A'}
-              </TableCell>
-              <TableCell>{item.lastUpdate}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
 
-    {/* Mobile View */}
-    <div className="md:hidden space-y-4">
-      {getFilteredReportData().map((item) => (
-        <div key={item.id} className="bg-white p-4 rounded-lg border">
-          <div className="space-y-3">
-            <div>
-              <h3 className="font-bold text-lg">{item.communityUnit}</h3>
-              <p className="text-sm text-gray-500">{item.facility}</p>
-            </div>
+                  <div>
+                    <p className="font-medium text-sm">Stock Status:</p>
+                    {item.commoditiesOutOfStock.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.commoditiesOutOfStock.map((commodity, index) => (
+                          <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                            {commodity}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-green-600 text-sm">All In Stock</span>
+                    )}
+                  </div>
 
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <span className="font-medium">County:</span> {item.county}
-              </div>
-              <div>
-                <span className="font-medium">Sub-County:</span> {item.subCounty}
-              </div>
-              <div>
-                <span className="font-medium">Ward:</span> {item.ward}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="font-medium">Commodities:</p>
-              {item.commodities.map((commodity, idx) => (
-                <div key={idx} className="p-2 bg-gray-50 rounded-md text-sm">
-                  <p className="font-medium">{commodity.name}</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    <span>Stock: {commodity.stockOnHand}</span>
-                    <span>Used: {commodity.consumed}</span>
+                  <div className="text-sm text-gray-500">
+                    Last Update: {item.lastUpdate}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <div>
-              <p className="font-medium text-sm">Stock Status:</p>
-              {item.commoditiesOutOfStock.length > 0 ? (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {item.commoditiesOutOfStock.map((commodity, index) => (
-                    <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                      {commodity}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-green-600 text-sm">All In Stock</span>
-              )}
-            </div>
-
-            {/* <div className="text-sm text-gray-500">
-              Created: {item.createdByUsername || 'N/A'}
-            </div> */}
-
-            <div className="text-sm text-gray-500">
-              Last Update: {item.lastUpdate}
-            </div>
+              </div>
+            ))}
           </div>
-        </div>
-      ))}
-    </div>
-  </CardContent>
-</Card>
-
+        </CardContent>
+      </Card>
     </div>
   );
 };
-
-// In your parent component or route
-<ErrorBoundary>
-  <Reports />
-</ErrorBoundary>
