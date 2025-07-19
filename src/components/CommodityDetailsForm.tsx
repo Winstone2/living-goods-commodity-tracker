@@ -264,17 +264,19 @@ export const CommodityDetailsForm: React.FC<CommodityDetailsFormProps> = ({
       const record = updated[commodityId];
 
       // Calculate closing balance
-      if (field !== 'closingBalance') {
-        const closingBalance =
-          (record.stockOnHand || 0) +
-          (record.quantityIssued || 0) -
-          ((record.quantityConsumed || 0) +
-            (record.quantityExpired || 0) +
-            (record.quantityDamaged || 0) +
-            (record.excessQuantityReturned || 0));
+     if (field !== 'closingBalance') {
+  const closingBalance =
+    (record.stockOnHand || 0) +
+    (record.quantityIssued || 0) -
+    ((record.quantityConsumed || 0) +
+      (record.quantityExpired || 0) +
+      (record.quantityDamaged || 0) +
+      (record.excessQuantityReturned || 0));
 
-        updated[commodityId].closingBalance = closingBalance;
-      }
+  // Ensure closing balance is not negative
+  updated[commodityId].closingBalance = closingBalance < 0 ? 0 : closingBalance;
+}
+
 
       // Calculate consumption period in days
       if (record.lastRestockDate && record.stockOutDate) {
