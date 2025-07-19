@@ -210,7 +210,7 @@ export const Reports = () => {
           'Opening Balance': commodity.stockOnHand,
           'Quantity Issued': commodity.issued,
           'Quantity Consumed': commodity.consumed,
-          'Quantity Expired': commodity.expired || 'N/A',
+          'Quantity Expired': commodity.expired || 0,
           'Quantity Damaged': commodity.damaged,
           'Excess Qty Returned': commodity.returned,
           'Closing Balance': commodity.closing,

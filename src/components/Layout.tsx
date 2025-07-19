@@ -48,7 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ...(user?.role === 'ADMIN' ? [
     { icon: Users, label: 'User Management', path: '/admin/users' },
     { icon: BadgeCheck, label: 'Management', path: '/management' },
-    { icon: Users, label: 'Community Units', path: '/community-units' },
+    // { icon: Users, label: 'Community Units', path: '/community-units' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },
     { icon: UploadCloudIcon, label: 'CHP Bulk Upload', path: '/chp-bulk-upload' }
 
